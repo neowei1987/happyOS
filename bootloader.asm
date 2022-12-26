@@ -13,14 +13,18 @@ LABEL_DESC_NORMAL: 	Descriptor	0, 			0ffffh, 				DA_DRW
 LABEL_DESC_CODE32: 	Descriptor 	0, 			SegCode32Len - 1, 		DA_C + DA_32 ;非一致代码段 
 LABEL_DESC_CODE16: 	Descriptor 	0, 			0ffffh, 				DA_C		 ;非一致代码段 
 LABEL_DESC_CODE_CALL: Descriptor 0, 		SegCodeDestLen - 1, DA_C + DA_32  ;非一致代码段
+LABEL_DESC_CODE_RING3: Descriptor 0, 		SegCodeRing3Len - 1, DA_C + DA_32 + DA_DPL3 ;非一致代码段
+
 LABEL_DESC_DATA:	Descriptor  0, 			DataLen - 1, 				DA_DRW ; 为什么此处不需要指定32？
 LABEL_DESC_STACK	Descriptor	0, 			TopOfStack, 			DA_DRWA + DA_32
+LABEL_DESC_STACK_RING3 	Descriptor 0, 		TopOfStack3, 			DA_DRWA + DA_32 + DA_DPL3
 LABEL_DESC_TEST		Descriptor	0500000h, 	0ffffh, 				DA_DRW
-LABEL_DESC_VIDEO: 	Descriptor 	0B8000h, 	0ffffh,  				DA_DRW ;显存首地址
+LABEL_DESC_VIDEO: 	Descriptor 	0B8000h, 	0ffffh,  				DA_DRW + DA_DPL3 ;显存首地址
 LABEL_DESC_LDT: 	Descriptor 	0, 	LDTLen - 1, DA_LDT 			
+LABEL_DESC_TSS: 	Descriptor 	0, 	TSSLen - 1, DA_386TSS 			
 
 ; 门
-LABEL_CALL_GATE_TEST: Gate Selector_CODE_CALL, 0, 0, DA_386CGate + DA_DPL0 
+LABEL_CALL_GATE_TEST: Gate Selector_CODE_CALL, 0, 0, DA_386CGate + DA_DPL3 
 
 GdtLen	equ $ - LABEL_GDT
 
@@ -31,15 +35,16 @@ SelectorNormal equ LABEL_DESC_NORMAL - LABEL_GDT
 SelectorCode16 equ LABEL_DESC_CODE16 - LABEL_GDT
 SeletorCode32 	equ LABEL_DESC_CODE32 - LABEL_GDT
 Selector_CODE_CALL equ LABEL_DESC_CODE_CALL - LABEL_GDT
+SelectorCodeRing3 equ LABEL_DESC_CODE_RING3 - LABEL_GDT + SA_RPL3
 
 SelectorData equ LABEL_DESC_DATA - LABEL_GDT
 SelectorStack 	equ LABEL_DESC_STACK - LABEL_GDT
+SelectorStack3 equ LABEL_DESC_STACK_RING3 - LABEL_GDT + SA_RPL3
 SelectorVideo 	equ LABEL_DESC_VIDEO - LABEL_GDT
 SelectorTest 	equ LABEL_DESC_TEST - LABEL_GDT 
 SelectorLDT 	equ LABEL_DESC_LDT - LABEL_GDT 
-SelectorCallGateTest equ LABEL_CALL_GATE_TEST - LABEL_GDT
-
-;END of [SECTION .gdt]
+SelectorCallGateTest equ LABEL_CALL_GATE_TEST - LABEL_GDT + SA_RPL3
+SelectorTSS 	equ LABEL_DESC_TSS - LABEL_GDT
 
 [SECTION .ldt] 
 ALIGN 32
@@ -156,6 +161,36 @@ mov word [LABEL_DESC_CODE_CALL + 2], ax
 shr eax, 16
 mov byte [LABEL_DESC_CODE_CALL + 4], al
 mov byte [LABEL_DESC_CODE_CALL + 7], ah 
+
+; 初始化Ring3 Code
+xor eax, eax
+mov ax, cs 
+shl eax, 4
+add eax, LABEL_CODE_RING3
+mov word [LABEL_DESC_CODE_RING3 + 2], ax
+shr eax, 16
+mov byte [LABEL_DESC_CODE_RING3 + 4], al
+mov byte [LABEL_DESC_CODE_RING3 + 7], ah 
+
+; 初始化Ring3 Stack
+xor eax, eax
+mov ax, ss
+shl eax, 4
+add eax, LABEL_STACK3
+mov word [LABEL_DESC_STACK_RING3 + 2], ax
+shr eax, 16
+mov byte [LABEL_DESC_STACK_RING3 + 4], al
+mov byte [LABEL_DESC_STACK_RING3 + 7], ah 
+
+; 初始化TSS(Task State Stack)
+xor eax, eax
+mov ax, ds
+shl eax, 4
+add eax, LABEL_TSS
+mov word [LABEL_DESC_TSS + 2], ax
+shr eax, 16
+mov byte [LABEL_DESC_TSS + 4], al
+mov byte [LABEL_DESC_TSS + 7], ah 
 
 ; 初始化LDT中的描述符
 xor eax, eax
@@ -280,7 +315,7 @@ LABEL_SEG_CODE32:
 
 	call DispReturn
 
-	call SelectorCallGateTest:0
+	;call SelectorCallGateTest:0
 
 	; 加载LDT
 	mov ax, SelectorLDT
@@ -420,6 +455,17 @@ LABEL_CODE_A:
 	mov al, 'L'
 	mov [gs:edi], ax 
 
+	; 加载TSS，为特权级转换做准备
+	mov ax, SelectorTSS
+	ltr ax
+
+	; 这里验证如何进入ring3
+	push SelectorStack3
+	push TopOfStack3
+	push SelectorCodeRing3
+	push 0
+	retf
+
 	jmp SelectorCode16:0
 
 CodeALen equ $-LABEL_CODE_A
@@ -439,3 +485,68 @@ LABEL_SEG_CODE_DEST:
 	retf ; 与常规的ret有何区别？
 
 SegCodeDestLen equ $ - LABEL_SEG_CODE_DEST
+
+; Ring3
+; ring3堆栈段
+[section .s3]
+ALIGN 32
+[bits 32]
+LABEL_STACK3:
+	times 512 db 0
+
+TopOfStack3 equ $ - LABEL_STACK3 - 1 ;？ 为啥有的-1，有的不减呢？
+
+; ring3代码段
+[section .ring3]
+ALIGN 32
+[bits 32]
+LABEL_CODE_RING3:
+
+	mov ax, SelectorVideo 
+	mov gs, ax 
+	mov edi, (80 * 13 + 2) * 2 
+	mov ah, 0Ch 
+	mov al, '3'
+	mov [gs:edi], ax 
+
+	;ring3 通过调用门调用ring3代码
+	call SelectorCallGateTest:0
+
+	jmp $
+
+SegCodeRing3Len equ $ - LABEL_CODE_RING3
+
+; TSS ---------------------------------------------------------------------------------------------
+[SECTION .tss]
+ALIGN	32
+[BITS	32]
+LABEL_TSS:
+		DD	0			; Back
+		DD	TopOfStack		; 0 级堆栈
+		DD	SelectorStack		; 
+		DD	0			; 1 级堆栈
+		DD	0			; 
+		DD	0			; 2 级堆栈
+		DD	0			; 
+		DD	0			; CR3
+		DD	0			; EIP
+		DD	0			; EFLAGS
+		DD	0			; EAX
+		DD	0			; ECX
+		DD	0			; EDX
+		DD	0			; EBX
+		DD	0			; ESP
+		DD	0			; EBP
+		DD	0			; ESI
+		DD	0			; EDI
+		DD	0			; ES
+		DD	0			; CS
+		DD	0			; SS
+		DD	0			; DS
+		DD	0			; FS
+		DD	0			; GS
+		DD	0			; LDT
+		DW	0			; 调试陷阱标志
+		DW	$ - LABEL_TSS + 2	; I/O位图基址
+		DB	0ffh			; I/O位图结束标志
+TSSLen 	equ $ - LABEL_TSS
