@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "*.php": "php",
+        "memory.h": "c"
+    }
+}
