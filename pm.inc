@@ -12,7 +12,22 @@
 	db (%1 >> 24) & 0FFh
 %endmacro	; 共8字节
 
+; 调用门
+; usage: Gate Selector, Offset, DCount, Attr
+
+%macro Gate 4
+	dw %2 & 0FFFFh ; offset 1
+	dw %1	; 选择子
+	dw ((%4 << 8) & 0FF00h) | (%3 & 1Fh) ; 属性
+	dw (%2 >> 16) & 0FFFFh ; offset2
+%endmacro	; 共8字节
+
 DA_32		EQU	4000h	; 32 位段
+
+DA_DPL0		EQU	  00h	; DPL = 0
+DA_DPL1		EQU	  20h	; DPL = 1
+DA_DPL2		EQU	  40h	; DPL = 2
+DA_DPL3		EQU	  60h	; DPL = 3
 
 DA_C		EQU	98h	; 存在的只执行代码段属性值
 
@@ -23,6 +38,7 @@ DA_DRWA		EQU	93h	; 存在的已访问可读写数据段类型值
 ; 系统段描述符类型值说明
 ;--------------------
 DA_LDT		EQU	  82h	; 局部描述符表段类型值
+DA_386CGate	EQU	  8Ch	; 386 调用门类型值
 
 
 ; 选择子图示:

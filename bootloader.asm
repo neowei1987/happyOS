@@ -12,25 +12,32 @@ LABEL_GDT: 			Descriptor 	0, 			0, 						0
 LABEL_DESC_NORMAL: 	Descriptor	0, 			0ffffh, 				DA_DRW
 LABEL_DESC_CODE32: 	Descriptor 	0, 			SegCode32Len - 1, 		DA_C + DA_32 ;非一致代码段 
 LABEL_DESC_CODE16: 	Descriptor 	0, 			0ffffh, 				DA_C		 ;非一致代码段 
+LABEL_DESC_CODE_CALL: Descriptor 0, 		SegCodeDestLen - 1, DA_C + DA_32  ;非一致代码段
 LABEL_DESC_DATA:	Descriptor  0, 			DataLen - 1, 				DA_DRW ; 为什么此处不需要指定32？
 LABEL_DESC_STACK	Descriptor	0, 			TopOfStack, 			DA_DRWA + DA_32
 LABEL_DESC_TEST		Descriptor	0500000h, 	0ffffh, 				DA_DRW
 LABEL_DESC_VIDEO: 	Descriptor 	0B8000h, 	0ffffh,  				DA_DRW ;显存首地址
 LABEL_DESC_LDT: 	Descriptor 	0, 	LDTLen - 1, DA_LDT 			
 
+; 门
+LABEL_CALL_GATE_TEST: Gate Selector_CODE_CALL, 0, 0, DA_386CGate + DA_DPL0 
+
 GdtLen	equ $ - LABEL_GDT
 
-GdtPtr 	dw 	GdtLen - 1
+GdtPtr 	dw 	GdtLen
 		dd 	0
  
 SelectorNormal equ LABEL_DESC_NORMAL - LABEL_GDT
 SelectorCode16 equ LABEL_DESC_CODE16 - LABEL_GDT
 SeletorCode32 	equ LABEL_DESC_CODE32 - LABEL_GDT
+Selector_CODE_CALL equ LABEL_DESC_CODE_CALL - LABEL_GDT
+
 SelectorData equ LABEL_DESC_DATA - LABEL_GDT
 SelectorStack 	equ LABEL_DESC_STACK - LABEL_GDT
 SelectorVideo 	equ LABEL_DESC_VIDEO - LABEL_GDT
 SelectorTest 	equ LABEL_DESC_TEST - LABEL_GDT 
 SelectorLDT 	equ LABEL_DESC_LDT - LABEL_GDT 
+SelectorCallGateTest equ LABEL_CALL_GATE_TEST - LABEL_GDT
 
 ;END of [SECTION .gdt]
 
@@ -38,8 +45,8 @@ SelectorLDT 	equ LABEL_DESC_LDT - LABEL_GDT
 ALIGN 32
 LABEL_LDT:
 LABEL_LDT_DESC_CODE_A: Descriptor 0, CodeALen - 1, DA_C + DA_32 
-
 LDTLen equ $ - LABEL_LDT
+
 
 SelectorLDTCodeA equ LABEL_LDT_DESC_CODE_A - LABEL_LDT + SA_TIL 
 ;END of [SECTION .ldt]
@@ -140,6 +147,16 @@ shr eax, 16
 mov byte [LABEL_DESC_LDT + 4], al
 mov byte [LABEL_DESC_LDT + 7], ah
 
+; 初始化调用门
+xor eax, eax
+mov ax, cs 
+shl eax, 4
+add eax, LABEL_SEG_CODE_DEST
+mov word [LABEL_DESC_CODE_CALL + 2], ax
+shr eax, 16
+mov byte [LABEL_DESC_CODE_CALL + 4], al
+mov byte [LABEL_DESC_CODE_CALL + 7], ah 
+
 ; 初始化LDT中的描述符
 xor eax, eax
 mov ax, ds 
@@ -149,6 +166,7 @@ mov word [LABEL_LDT_DESC_CODE_A + 2], ax
 shr eax, 16
 mov byte [LABEL_LDT_DESC_CODE_A + 4], al
 mov byte [LABEL_LDT_DESC_CODE_A + 7], ah 
+
 
 ; 为加载GDTR做准备
 xor eax, eax
@@ -261,6 +279,8 @@ LABEL_SEG_CODE32:
 	call TestRead
 
 	call DispReturn
+
+	call SelectorCallGateTest:0
 
 	; 加载LDT
 	mov ax, SelectorLDT
@@ -405,3 +425,17 @@ LABEL_CODE_A:
 CodeALen equ $-LABEL_CODE_A
 
 ;END of [SECTION .la]
+
+[Section .sdest]
+[bits 32]
+LABEL_SEG_CODE_DEST:
+	mov ax, SelectorVideo 
+	mov gs, ax 
+	mov edi, (80 * 12 + 1) * 2 
+	mov ah, 0Ch 
+	mov al, 'C'
+	mov [gs:edi], ax 
+
+	retf ; 与常规的ret有何区别？
+
+SegCodeDestLen equ $ - LABEL_SEG_CODE_DEST
