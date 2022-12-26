@@ -315,13 +315,18 @@ LABEL_SEG_CODE32:
 
 	call DispReturn
 
+	; 加载TSS，为特权级转换做准备
+	mov ax, SelectorTSS
+	ltr ax
+
+	; 这里验证如何进入ring3
+	push SelectorStack3
+	push TopOfStack3
+	push SelectorCodeRing3
+	push 0
+	retf
+	
 	;call SelectorCallGateTest:0
-
-	; 加载LDT
-	mov ax, SelectorLDT
-	lldt ax 
-
-	jmp SelectorLDTCodeA:0 ; 局部任务
 
 	;jmp SelectorCode16:0
 
@@ -455,17 +460,6 @@ LABEL_CODE_A:
 	mov al, 'L'
 	mov [gs:edi], ax 
 
-	; 加载TSS，为特权级转换做准备
-	mov ax, SelectorTSS
-	ltr ax
-
-	; 这里验证如何进入ring3
-	push SelectorStack3
-	push TopOfStack3
-	push SelectorCodeRing3
-	push 0
-	retf
-
 	jmp SelectorCode16:0
 
 CodeALen equ $-LABEL_CODE_A
@@ -482,7 +476,13 @@ LABEL_SEG_CODE_DEST:
 	mov al, 'C'
 	mov [gs:edi], ax 
 
-	retf ; 与常规的ret有何区别？
+	; 加载LDT
+	mov ax, SelectorLDT
+	lldt ax 
+
+	jmp SelectorLDTCodeA:0 ; 局部任务
+
+	;retf ; 与常规的ret有何区别？
 
 SegCodeDestLen equ $ - LABEL_SEG_CODE_DEST
 
