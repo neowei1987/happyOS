@@ -21,3 +21,4 @@ boot: c
 #boot: a
 display_library: sdl2
 
+magic_break: enabled=1

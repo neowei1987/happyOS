@@ -2,59 +2,12 @@
 
 org     0100h ; 0x7c00
 
+xchg bx, bx 
 jmp Label_Start
 
 BaseofStack     equ     0x0100 ; 0100h??
-
-[SECTION .gdt]
-
-LABEL_GDT: 			Descriptor 	0, 			0, 						0
-LABEL_DESC_NORMAL: 	Descriptor	0, 			0ffffh, 				DA_DRW
-LABEL_DESC_CODE32: 	Descriptor 	0, 			SegCode32Len - 1, 		DA_C + DA_32 ;非一致代码段 
-LABEL_DESC_CODE16: 	Descriptor 	0, 			0ffffh, 				DA_C		 ;非一致代码段 
-LABEL_DESC_CODE_CALL: Descriptor 0, 		SegCodeDestLen - 1, DA_C + DA_32  ;非一致代码段
-LABEL_DESC_CODE_RING3: Descriptor 0, 		SegCodeRing3Len - 1, DA_C + DA_32 + DA_DPL3 ;非一致代码段
-
-LABEL_DESC_DATA:	Descriptor  0, 			DataLen - 1, 				DA_DRW ; 为什么此处不需要指定32？
-LABEL_DESC_STACK	Descriptor	0, 			TopOfStack, 			DA_DRWA + DA_32
-LABEL_DESC_STACK_RING3 	Descriptor 0, 		TopOfStack3, 			DA_DRWA + DA_32 + DA_DPL3
-LABEL_DESC_TEST		Descriptor	0500000h, 	0ffffh, 				DA_DRW
-LABEL_DESC_VIDEO: 	Descriptor 	0B8000h, 	0ffffh,  				DA_DRW + DA_DPL3 ;显存首地址
-LABEL_DESC_LDT: 	Descriptor 	0, 	LDTLen - 1, DA_LDT 			
-LABEL_DESC_TSS: 	Descriptor 	0, 	TSSLen - 1, DA_386TSS 			
-
-; 门
-LABEL_CALL_GATE_TEST: Gate Selector_CODE_CALL, 0, 0, DA_386CGate + DA_DPL3 
-
-GdtLen	equ $ - LABEL_GDT
-
-GdtPtr 	dw 	GdtLen
-		dd 	0
- 
-SelectorNormal equ LABEL_DESC_NORMAL - LABEL_GDT
-SelectorCode16 equ LABEL_DESC_CODE16 - LABEL_GDT
-SeletorCode32 	equ LABEL_DESC_CODE32 - LABEL_GDT
-Selector_CODE_CALL equ LABEL_DESC_CODE_CALL - LABEL_GDT
-SelectorCodeRing3 equ LABEL_DESC_CODE_RING3 - LABEL_GDT + SA_RPL3
-
-SelectorData equ LABEL_DESC_DATA - LABEL_GDT
-SelectorStack 	equ LABEL_DESC_STACK - LABEL_GDT
-SelectorStack3 equ LABEL_DESC_STACK_RING3 - LABEL_GDT + SA_RPL3
-SelectorVideo 	equ LABEL_DESC_VIDEO - LABEL_GDT
-SelectorTest 	equ LABEL_DESC_TEST - LABEL_GDT 
-SelectorLDT 	equ LABEL_DESC_LDT - LABEL_GDT 
-SelectorCallGateTest equ LABEL_CALL_GATE_TEST - LABEL_GDT + SA_RPL3
-SelectorTSS 	equ LABEL_DESC_TSS - LABEL_GDT
-
-[SECTION .ldt] 
-ALIGN 32
-LABEL_LDT:
-LABEL_LDT_DESC_CODE_A: Descriptor 0, CodeALen - 1, DA_C + DA_32 
-LDTLen equ $ - LABEL_LDT
-
-
-SelectorLDTCodeA equ LABEL_LDT_DESC_CODE_A - LABEL_LDT + SA_TIL 
-;END of [SECTION .ldt]
+PageDirBase 	equ 200000h ; 页目录开始地址 2M
+PageTblBase equ 201000h ;页表开始地址
 
 [SECTION .s16]
 [BITS 16]
@@ -70,6 +23,25 @@ mov     sp,     BaseofStack
 mov [LABEL_GO_BACK_TO_REAL + 3], ax
 ; 把SP保存到某块内存中 
 mov [SPValueInRealMode], sp
+
+;得到内存数据
+mov ebx, 0 
+; 实模式下访问用_MemChkBuf，这个是相对DS的偏移【COM文件把所有的段放在了一起！】
+mov di, _MemChkBuf 
+.loop:
+mov eax, 0E820h 
+mov ecx, 20 
+mov edx, 0534D4150h
+int 15h 
+jc LABEL_MEM_CHK_FAIL
+add di, 20 
+inc dword [_dwMCRNumber]
+cmp ebx, 0 
+jne .loop 
+jmp LABEL_MEM_CHK_OK
+LABEL_MEM_CHK_FAIL:
+mov dword [_dwMCRNumber], 0 
+LABEL_MEM_CHK_OK:
 
 ;===============clear screen    
 mov ax, 0600h
@@ -97,7 +69,7 @@ mov es,  ax
 pop ax
 mov bp, startBootMessage
 int 10h
- 
+
 ;======== reset floppy
 xor ah,ah
 xor dl,dl
@@ -202,7 +174,6 @@ shr eax, 16
 mov byte [LABEL_LDT_DESC_CODE_A + 4], al
 mov byte [LABEL_LDT_DESC_CODE_A + 7], ah 
 
-
 ; 为加载GDTR做准备
 xor eax, eax
 mov ax, ds 
@@ -249,30 +220,6 @@ LABEL_REAL_ENTRY:
 
 ; END of [SECTION .s16]
 
-;数据段
-[SECTION .data1] 
-ALIGN	32
-[BITS 32]
-
-LABEL_DATA:
-
-SPValueInRealMode	dw 0
-
-PModeMessage:	db "In ProtectMode now..."
-OffsetPModeMessage 	equ PModeMessage - $$
-StrTest:	db "ABCDEFGHIJKLMNOPORSTUVWXYZ", 0
-OffsetStrTest equ StrTest - $$
-DataLen equ $-LABEL_DATA
-
-; 全局堆栈段
-[SECTION .gs]
-ALIGN 32
-[BITS 32]
-LABEL_STACK:
-	times 512 db 0
-
-TopOfStack equ $ - LABEL_STACK 
-
 [SECTION .s32] 
 [BITS 32]
 LABEL_SEG_CODE32:
@@ -280,7 +227,7 @@ LABEL_SEG_CODE32:
 	mov gs, ax  ;视频段选择子
 	mov ax, SelectorData
 	mov ds, ax ; 数据段选择子
-	mov ax, SelectorTest
+	mov ax, SelectorData
 	mov es, ax ; 测试段选择子
 
 	mov ax, SelectorStack
@@ -294,26 +241,22 @@ LABEL_SEG_CODE32:
 	;其中LODSB是读入AL,LODSW是读入AX中,
 	;然后SI自动增加或减小1或2位.当方向标志位DF=0时，则SI自动增加；
 	;DF=1时，SI自动减小。
-	xor esi, esi 
-	xor edi, edi 
-	mov esi, OffsetPModeMessage
-	mov edi, (80 * 11 + 0) * 2 
-	cld 
-.1:	
-	lodsb 
-	test al, al
-	jz .2
-	mov [gs:edi], ax 
-	add edi, 2
-	jmp .1
-.2:	
+	push OffsetPModeMessage 
+	call DispStr
+	add esp, 4 
 	call DispReturn 
 
-	call TestRead
-	call TestWrite 
-	call TestRead
+	;call TestRead
+	;call TestWrite 
+	;call TestRead
 
-	call DispReturn
+	push	szMemChkTitle
+	call	DispStr
+	add	esp, 4
+
+	call DispMemSize
+
+	;call SetupPaging
 
 	; 加载TSS，为特权级转换做准备
 	mov ax, SelectorTSS
@@ -330,96 +273,96 @@ LABEL_SEG_CODE32:
 
 	;jmp SelectorCode16:0
 
-TestRead:
-	xor esi, esi 
-	mov ecx, 8 
+;展示内存信息
+DispMemSize:
+	push esi
+	push edi 
+	push ecx
+	
+	mov esi, MemChkBuf ;地址放进去！
+	mov ecx, [dwMCRNumber] ; 把dwMCRNumber里面的内容放到寄存中
 .loop:
-	mov al, [es:esi]
-	call DispAL 
-	inc esi 
+	mov edx, 5 
+	mov edi, ARDStruct 
+.1:	
+	push dword[esi] ; 把ESI中的地址中存放的内容，放到了栈上
+	call DispInt 
+	pop eax ;
+	stosd ;stosb需要寄存器edi配合使用。每执行一次stosb，就将al中的内容复制到[edi]中。
+	add esi, 4
+	dec edx
+	cmp edx, 0
+	jnz .1
+	call DispReturn
+	cmp dword[ddType], 1 
+	jne .2 
+	mov eax, [ddBaseAddrLow]
+	add eax, [ddLengthLow]
+	cmp eax, [dwMemSize]
+	jb .2
+	mov [dwMemSize], eax  
+.2:
 	loop .loop 
 
 	call DispReturn
-	ret 
-;TestRead结束
 
-TestWrite:
-	push esi
-	push edi 
-	xor esi, esi
-	xor edi, edi 
-	mov esi, OffsetStrTest
-	cld 
-.1:
-	lodsb 
-	test al, al 
-	jz .2 
-	mov [es:edi], al 
-	inc edi 
-	jmp .1
-.2: 	
+	push szRAMSize 
+	call DispStr
+	add esp, 4 
+
+	push dword[dwMemSize]
+	call DispInt
+	add esp, 4 
+
+	pop ecx
 	pop edi 
 	pop esi 
-	ret 
-;TestRead结束
 
-; ------------------------------------------------------------------------
-; 显示 AL 中的数字
-; 默认地:
-;	数字已经存在 AL 中
-;	edi 始终指向要显示的下一个字符的位置
-; 被改变的寄存器:
-;	ax, edi
-; ------------------------------------------------------------------------
-DispAL:
-	push ecx
-	push edx
-	mov ah, 0Ch 
-	mov dl, al 
-	shr al, 4 
-	mov ecx, 2 
-.begin: 
-	and al, 01111b 
-	cmp al, 9
-	ja .1
-	add al, '0'
-	jmp .2 
-.1:	
-	sub al, 0Ah 
-	add al, 'A'
-.2:
- 	mov [gs:edi], ax 
-	add edi, 2 
+	ret
 
-	mov al, dl 
-	loop .begin 
-	add edi, 2 
+; 启动分页机制
 
-	pop edx
-	pop ecx 
-	ret	
-;DispAL结束
+SetupPaging:
+	;初始化页目录
+	mov ax, SelectorPageDir
+	mov es, ax 
+	mov ecx, 1024
+	xor edi, edi 
+	xor eax, eax 
+	mov eax, PageTblBase | PG_P | PG_USU | PG_RWW
+.4: 
+	stosd 
+	add eax, 4096 
+	loop .4
+	; PageDir的每一项，分别执行每一个TblBase
 
-; 对edi做更改
-DispReturn:
-	push eax
-	push ebx 
-	mov eax, edi 
-	mov bl, 160 
-	div bl 
-	and eax, 0FFh 
-	inc eax 
-	mov bl, 160 
-	mul bl
-	mov edi, eax 
-	pop ebx 
-	pop eax 
-	ret 
-; DispReturn结束
+	;初始化页表, 1K个， 4M的空间
+	mov ax, SelectorPageTbl
+	mov es, ax 
+	mov ecx, 1024 * 1024 
+	xor edi, edi 
+	xor eax, eax 
+	mov eax, PG_P | PG_USU | PG_RWW
+.2: 
+	stosd 
+	add eax, 4096 
+	loop .2
+
+	; 把页目录表基地址放入Cr3
+	mov eax, PageDirBase
+	mov cr3, eax 
+	;设置CR0 的 PG（第232行到第234行），这样，分页机制就启动完成了。
+	mov eax, cr0 
+	or eax, 80000000h 
+	mov cr0, eax 
+	jmp short .3
+.3:
+	nop 
+	ret
+
+%include "lib.inc"
 
 SegCode32Len equ $-LABEL_SEG_CODE32
-
-startBootMessage:   db  "start Boot"
 
 ;=========fill zero until whole sector
 ; $表示当前行被汇编后的地址
@@ -453,12 +396,17 @@ Code16Len	equ	$ - LABEL_SEG_CODE16
 ALIGN 32
 [BITS 32]
 LABEL_CODE_A:
+	
 	mov ax, SelectorVideo 
 	mov gs, ax 
-	mov edi, (80 * 15 + 0) * 2 
+	mov edi, (80 * 15 + 2) * 2 
 	mov ah, 0Ch 
 	mov al, 'L'
 	mov [gs:edi], ax 
+
+	;mov al, 'L'
+	;call DispAL
+	;call DispReturn
 
 	jmp SelectorCode16:0
 
@@ -469,12 +417,16 @@ CodeALen equ $-LABEL_CODE_A
 [Section .sdest]
 [bits 32]
 LABEL_SEG_CODE_DEST:
+
 	mov ax, SelectorVideo 
 	mov gs, ax 
-	mov edi, (80 * 12 + 1) * 2 
+	mov edi, (80 * 15 + 1) * 2 
 	mov ah, 0Ch 
 	mov al, 'C'
 	mov [gs:edi], ax 
+	;mov al, 'C'
+	;call DispAL
+	;call DispReturn
 
 	; 加载LDT
 	mov ax, SelectorLDT
@@ -486,28 +438,20 @@ LABEL_SEG_CODE_DEST:
 
 SegCodeDestLen equ $ - LABEL_SEG_CODE_DEST
 
-; Ring3
-; ring3堆栈段
-[section .s3]
-ALIGN 32
-[bits 32]
-LABEL_STACK3:
-	times 512 db 0
-
-TopOfStack3 equ $ - LABEL_STACK3 - 1 ;？ 为啥有的-1，有的不减呢？
-
 ; ring3代码段
 [section .ring3]
 ALIGN 32
 [bits 32]
 LABEL_CODE_RING3:
-
 	mov ax, SelectorVideo 
 	mov gs, ax 
-	mov edi, (80 * 13 + 2) * 2 
+	mov edi, (80 * 15 + 0) * 2 
 	mov ah, 0Ch 
 	mov al, '3'
 	mov [gs:edi], ax 
+	;mov al, '3'
+	;call DispAL
+	;call DispReturn
 
 	;ring3 通过调用门调用ring3代码
 	call SelectorCallGateTest:0
@@ -550,3 +494,123 @@ LABEL_TSS:
 		DW	$ - LABEL_TSS + 2	; I/O位图基址
 		DB	0ffh			; I/O位图结束标志
 TSSLen 	equ $ - LABEL_TSS
+
+; Ring3
+; ring3堆栈段
+[section .s3]
+ALIGN 32
+[bits 32]
+LABEL_STACK3:
+	times 512 db 0
+
+TopOfStack3 equ $ - LABEL_STACK3 - 1 ;？ 为啥有的-1，有的不减呢？
+
+[SECTION .gdt]
+
+LABEL_GDT: 			Descriptor 	0, 			0, 						0
+LABEL_DESC_NORMAL: 	Descriptor	0, 			0ffffh, 				DA_DRW
+LABEL_DESC_CODE32: 	Descriptor 	0, 			SegCode32Len - 1, 		DA_C + DA_32 ;非一致代码段 
+LABEL_DESC_CODE16: 	Descriptor 	0, 			0ffffh, 				DA_C		 ;非一致代码段 
+LABEL_DESC_CODE_CALL: Descriptor 0, 		SegCodeDestLen - 1, DA_C + DA_32  ;非一致代码段
+LABEL_DESC_CODE_RING3: Descriptor 0, 		SegCodeRing3Len - 1, DA_C + DA_32 + DA_DPL3 ;非一致代码段
+
+LABEL_DESC_DATA:	Descriptor  0, 			DataLen - 1, 				DA_DRW ; 为什么此处不需要指定32？
+LABEL_DESC_STACK	Descriptor	0, 			TopOfStack, 			DA_DRWA + DA_32
+LABEL_DESC_STACK_RING3 	Descriptor 0, 		TopOfStack3, 			DA_DRWA + DA_32 + DA_DPL3
+LABEL_DESC_TEST		Descriptor	0500000h, 	0ffffh, 				DA_DRW
+LABEL_DESC_VIDEO: 	Descriptor 	0B8000h, 	0ffffh,  				DA_DRW + DA_DPL3 ;显存首地址
+LABEL_DESC_LDT: 	Descriptor 	0, 	LDTLen - 1, DA_LDT 			
+LABEL_DESC_TSS: 	Descriptor 	0, 	TSSLen - 1, DA_386TSS 			
+
+; 门
+LABEL_CALL_GATE_TEST: Gate Selector_CODE_CALL, 0, 0, DA_386CGate + DA_DPL3 
+
+LABEL_DESC_PAGE_DIR: Descriptor PageDirBase, 4096, DA_DRW 
+LABEL_DESC_PAGE_TBL: Descriptor PageTblBase, 1024, DA_DRW + DA_LIMIT_4K
+
+GdtLen	equ $ - LABEL_GDT
+
+GdtPtr 	dw 	GdtLen
+		dd 	0
+ 
+SelectorNormal equ LABEL_DESC_NORMAL - LABEL_GDT
+SelectorCode16 equ LABEL_DESC_CODE16 - LABEL_GDT
+SeletorCode32 	equ LABEL_DESC_CODE32 - LABEL_GDT
+Selector_CODE_CALL equ LABEL_DESC_CODE_CALL - LABEL_GDT
+SelectorCodeRing3 equ LABEL_DESC_CODE_RING3 - LABEL_GDT + SA_RPL3
+
+SelectorData equ LABEL_DESC_DATA - LABEL_GDT
+SelectorStack 	equ LABEL_DESC_STACK - LABEL_GDT
+SelectorStack3 equ LABEL_DESC_STACK_RING3 - LABEL_GDT + SA_RPL3
+SelectorVideo 	equ LABEL_DESC_VIDEO - LABEL_GDT
+SelectorTest 	equ LABEL_DESC_TEST - LABEL_GDT 
+SelectorLDT 	equ LABEL_DESC_LDT - LABEL_GDT 
+SelectorCallGateTest equ LABEL_CALL_GATE_TEST - LABEL_GDT + SA_RPL3
+SelectorTSS 	equ LABEL_DESC_TSS - LABEL_GDT
+SelectorPageDir equ LABEL_DESC_PAGE_DIR - LABEL_GDT
+SelectorPageTbl equ LABEL_DESC_PAGE_TBL - LABEL_GDT 
+
+;END of [SECTION .gdt]
+
+[SECTION .ldt] 
+ALIGN 32
+LABEL_LDT:
+LABEL_LDT_DESC_CODE_A: Descriptor 0, CodeALen - 1, DA_C + DA_32 
+LDTLen equ $ - LABEL_LDT
+
+SelectorLDTCodeA equ LABEL_LDT_DESC_CODE_A - LABEL_LDT + SA_TIL 
+;END of [SECTION .ldt]
+
+;数据段
+[SECTION .data1] 
+ALIGN	32
+[BITS 32]
+
+LABEL_DATA:
+
+startBootMessage:   db  "start Boot"
+SPValueInRealMode	dw 0
+; 内存获取与展示相关
+_MemChkBuf: times 256 dd 0
+_szMemChkTitle:			db	"BaseAddrL BaseAddrH LengthLow LengthHigh   Type", 0Ah, 0	; 进入保护模式后显示此字符串
+_szRAMSize			db	"RAM size:", 0
+_szReturn db 0Ah, 0 
+
+_dwMCRNumber: dd 0 
+_dwDispPos:	dd (80 * 3 + 0) * 2
+_dwMemSize: dd 0 
+_ARDStruct: 	; Address Range Descriptor Structure
+	_ddBaseAddrLow: dd 0 
+	_dBaseAddrHigh: dd 0
+	_ddLengthLow: dd 0 
+	_ddLengthHigh: dd 0
+	_ddType: dd 0
+PModeMessage:	db "In ProtectMode now...", 0Ah, 0
+StrTest:	db "ABCDEFGHIJKLMNOPORSTUVWXYZ", 0
+
+OffsetPModeMessage 	equ PModeMessage - $$
+OffsetStrTest equ StrTest - $$
+szReturn		equ	_szReturn	- $$
+szMemChkTitle	equ	_szMemChkTitle	- $$
+szRAMSize		equ	_szRAMSize	- $$
+MemChkBuf equ  _MemChkBuf - $$ ; 相对这一SECION的偏移量？
+ARDStruct equ	_ARDStruct	- $$
+	ddBaseAddrLow	equ	_ddBaseAddrLow	- $$
+	dBaseAddrHigh	equ	_dBaseAddrHigh	- $$
+	ddLengthLow	equ	_ddLengthLow	- $$
+	ddLengthHigh	equ	_ddLengthHigh	- $$
+	ddType		equ	_ddType		- $$
+dwDispPos		equ	_dwDispPos	- $$
+dwMemSize		equ	_dwMemSize	- $$
+dwMCRNumber		equ	_dwMCRNumber	- $$
+
+DataLen equ $-LABEL_DATA
+
+; 全局堆栈段
+[SECTION .gs]
+ALIGN 32
+[BITS 32]
+LABEL_STACK:
+	times 512 db 0
+
+TopOfStack equ $ - LABEL_STACK 
