@@ -30,7 +30,6 @@ retf 跨段返回
 
 中断源于外部
 
-
 mov al, 011h ; 00010001b; 边缘触法，启用级联，8字节中断向量，需要ICW4
 
 调试了很久，发现011h错误的写成了011;
@@ -54,5 +53,3 @@ nasm -f elf32 -o kernel_i386_32.o kernel.asm
 链接，-m表示模拟器模式 elf_i386 也就是32位ELF
 x86_64-linux-gnu-ld -m elf_i386 -n -s -Ttext 0x30400 -o kernel.bin kernel_i386_32.o
 下面的-n参数，会忽略4k对齐要求，大幅降低elf文件大小【耗费半天】
-
-
