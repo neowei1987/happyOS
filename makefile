@@ -27,7 +27,7 @@ DASMFLAGS	= -u -o $(ENTRYPOINT) -e $(ENTRYOFFSET)
 # This Program
 TINIXBOOT	= boot/boot.bin boot/loader.bin
 TINIXKERNEL	= kernel.bin
-OBJS		= kernel/kernel.o kernel/start.o lib/klib.o lib/memory.o
+OBJS		= kernel/kernel.o kernel/start.o lib/klib.o lib/memory.o kernel/8259.o kernel/interupt.o lib/mylib.o kernel/global.o
 DASMOUTPUT	= kernel.bin.asm
 
 # All Phony Targets
@@ -66,11 +66,20 @@ boot/loader.bin : boot/loader.asm boot/include/phy_addr.inc boot/include/fat12hd
 $(TINIXKERNEL) : $(OBJS)
 	$(LD) $(LDFLAGS) -o $(TINIXKERNEL) $(OBJS)
 
-kernel/kernel.o : kernel/kernel.asm
-	$(ASM) $(ASMKFLAGS) -o $@ $<
-
 kernel/start.o : kernel/start.c ./include/types.h ./include/const.h ./include/protect.h
 	$(CC) $(CFLAGS) -o $@ $<
+
+kernel/interupt.o : kernel/interupt.c ./include/types.h ./include/const.h ./include/protect.h
+	$(CC) $(CFLAGS) -o $@ $<
+
+kernel/global.o : kernel/global.c ./include/types.h ./include/const.h ./include/protect.h
+	$(CC) $(CFLAGS) -o $@ $<
+
+lib/mylib.o: lib/mylib.c include/types.h include/const.h include/protect.h include/types.h include/global.h include/protect.h
+	$(CC) $(CFLAGS) -o $@ $<
+
+kernel/kernel.o : kernel/kernel.asm
+	$(ASM) $(ASMKFLAGS) -o $@ $<
 
 lib/klib.o : lib/klib.asm
 	$(ASM) $(ASMKFLAGS) -o $@ $<
