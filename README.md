@@ -23,3 +23,36 @@ add esp, 12
 上面的add esp 12操作容易忘记，导致栈被破坏（ret的以后跳到了一个很奇怪的位置）
 
 retf 跨段返回
+
+异常中断
+
+异常源于内部
+
+中断源于外部
+
+
+mov al, 011h ; 00010001b; 边缘触法，启用级联，8字节中断向量，需要ICW4
+
+调试了很久，发现011h错误的写成了011;
+结果很奇怪，时钟中断没有被触发
+
+常用命令：
+
+bximage
+
+dd if=boot.bin of=a.img bs=512 count=1 conv=notrunc
+
+cp loader.bin /Volumes/Untitled
+
+交叉编译问题
+
+安装交叉编译工具链
+brew install x86_64-linux-gnu-binutils
+
+编译出32位机器上的ELF o
+nasm -f elf32 -o kernel_i386_32.o kernel.asm
+链接，-m表示模拟器模式 elf_i386 也就是32位ELF
+x86_64-linux-gnu-ld -m elf_i386 -n -s -Ttext 0x30400 -o kernel.bin kernel_i386_32.o
+下面的-n参数，会忽略4k对齐要求，大幅降低elf文件大小【耗费半天】
+
+
