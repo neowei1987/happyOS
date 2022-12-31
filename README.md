@@ -39,7 +39,7 @@ mov al, 011h ; 00010001b; 边缘触法，启用级联，8字节中断向量，�
 
 bximage
 
-dd if=boot.bin of=a.img bs=512 count=1 conv=notrunc
+dd if=boot/boot.bin of=a.img bs=512 count=1 conv=notrunc
 
 cp loader.bin /Volumes/Untitled
 

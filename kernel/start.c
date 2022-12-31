@@ -23,8 +23,8 @@ PUBLIC void cstart() {
     *p_idt_limit = IDT_SIZE * sizeof(GATE) - 1;
     *p_idt_base = (t_32)idt;
 
-    disp_str("-----Init Prot-----\n");
-    init_prot();
+    disp_str("-----Init descriptor-----\n");
+    init_descriptors();
 
     disp_str("-----\"cstart\" ends-----\n");
 }

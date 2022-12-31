@@ -27,7 +27,9 @@ DASMFLAGS	= -u -o $(ENTRYPOINT) -e $(ENTRYOFFSET)
 # This Program
 TINIXBOOT	= boot/boot.bin boot/loader.bin
 TINIXKERNEL	= kernel.bin
-OBJS		= kernel/kernel.o kernel/start.o lib/klib.o lib/memory.o kernel/8259.o kernel/interupt.o lib/mylib.o kernel/global.o
+OBJS		= kernel/kernel.o kernel/start.o \
+			lib/klib.o lib/memory.o lib/mylib.o \
+			kernel/global.o kernel/main.o kernel/8259.o kernel/interupt.o kernel/protect.o
 DASMOUTPUT	= kernel.bin.asm
 
 # All Phony Targets
@@ -40,7 +42,7 @@ all : realclean everything
 
 final : all clean
 
-image : final buildimg
+image : final img
 
 clean :
 	rm -f $(OBJS)
@@ -53,7 +55,7 @@ disasm :
 
 # Write "boot.bin" & "loader.bin" into floppy image "TINIX.IMG"
 # We assume that "TINIX.IMG" exists in current folder
-buildimg :
+img :
 	cp -f boot/loader.bin  /Volumes/Untitled
 	cp -f kernel.bin  /Volumes/Untitled
 
@@ -67,6 +69,12 @@ $(TINIXKERNEL) : $(OBJS)
 	$(LD) $(LDFLAGS) -o $(TINIXKERNEL) $(OBJS)
 
 kernel/start.o : kernel/start.c ./include/types.h ./include/const.h ./include/protect.h
+	$(CC) $(CFLAGS) -o $@ $<
+
+kernel/protect.o : kernel/protect.c ./include/types.h ./include/const.h ./include/protect.h
+	$(CC) $(CFLAGS) -o $@ $<
+
+kernel/main.o : kernel/main.c ./include/types.h ./include/const.h ./include/protect.h
 	$(CC) $(CFLAGS) -o $@ $<
 
 kernel/interupt.o : kernel/interupt.c ./include/types.h ./include/const.h ./include/protect.h

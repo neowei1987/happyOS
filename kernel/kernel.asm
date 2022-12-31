@@ -1,17 +1,22 @@
 ;nasm -f elf kernel.asm -o kernel.o  
 ; ld
 
-SELECTOR_KERNEL_CS	equ	8
+%include "sconst.inc"
 
 ; 导入函数
 extern	cstart
+extern 	happy_main
 extern	exception_handler
 extern	spurious_irq
 
 ; 导入全局变量
 extern	gdt_ptr
 extern	idt_ptr
+extern p_proc_ready 
+extern tss 
 extern	disp_pos
+extern disp_str
+extern k_reenter
 
 bits 32
 
@@ -19,7 +24,12 @@ bits 32
 StackSpace		resb	2 * 1024
 StackTop:		; 栈顶
 
+[SECTION .data]
+clock_int_msg db "^", 0
+
 global _start	; 导出 _start
+
+global restart 
 
 global	divide_error
 global	single_step_exception
@@ -57,23 +67,60 @@ global	hwint15
 [section .text]
 
 _start: 
+	xchg bx, bx 
+	; 把esp从loader挪到KERNEL
     mov esp, StackTop
-    sgdt [gdt_ptr]
-    call cstart 
-    lgdt [gdt_ptr]
+
+    sgdt [gdt_ptr] ;保存老的GDT到kernel空间
+    call cstart 	
+    lgdt [gdt_ptr]	;从kernel空间重新加载gdt
+
+	lidt [idt_ptr] ; 加载中断描述符表
 
     jmp SELECTOR_KERNEL_CS:csinit
 csinit:		; “这个跳转指令强制使用刚刚初始化的结构”——<<OS:D&I 2nd>> P90.
-    push	0
-	popfd	; Pop top of stack into EFLAGS
+    ;push	0
+	;popfd	; Pop top of stack into EFLAGS
 
-	sti ;打开中断
+	;sti ;打开中断
 
-	ud2
-	jmp 0x40:0
+	;ud2
+	;jmp 0x40:0
 
-	hlt
+	xor eax, eax 
+	mov ax, SELECTOR_TSS 
+	ltr ax
+
+	jmp happy_main
+
+	jmp $
+
+	;hlt
   
+restart:
+	mov esp, [p_proc_ready]
+	lldt [esp + P_LDT_SEL]
+
+	lea eax, [esp + P_STACK_TOP]
+	mov dword [tss + TSS3_S_SP0], eax
+
+	pop gs 
+	pop fs 
+	pop es 
+	pop ds 
+	popad 
+	add esp, 4 
+	iretd
+;restart_reenter:
+;	dec dword [k_reenter]
+;	pop gs 
+;	pop fs 
+;	pop es
+;	pop ds 
+;	popad 
+;	add esp, 4 
+;	iret 
+
   ; 中断和异常 -- 硬件中断
 ; ---------------------------------
 %macro	hwint_master	1
@@ -85,7 +132,50 @@ csinit:		; “这个跳转指令强制使用刚刚初始化的结构”——<<O
 
 ALIGN	16
 hwint00:		; Interrupt routine for irq 0 (the clock).
-	hwint_master	0
+	; esp指向StackFrame的高地址，也就是retaddr;
+	; sub 4个字节，也就是把这个地址跳过了。
+	sub esp, 4 
+	pushad 
+	push ds 
+	push es 
+	push fs 
+	push gs 
+	; 以上是保存工作
+
+	;进程调度开始
+   inc byte [gs:0]
+
+   mov al, EOI ; reenable 
+   out INT_M_CTL, al 
+
+	inc dword [k_reenter]
+	cmp dword [k_reenter], 0
+	jne .re_enter
+
+	mov esp, StackTop ;把ESP从进程表切走，切到内核栈（用来完成既定工作，例如进程调度等）
+	sti 
+
+   push clock_int_msg 
+   call disp_str 
+   add esp, 4
+   ; 进程调度结束
+
+	cli 
+
+   mov esp, [p_proc_ready]; 离开内核栈，把ESP指向下一个要被调度到的进程表
+   lea eax, [esp + P_STACK_TOP]
+   mov dword [tss + TSS3_S_SP0], eax 
+.re_enter:
+	dec dword[k_reenter]
+
+	; 以下是恢复工作
+   pop gs 
+   pop fs 
+   pop es 
+   pop ds 
+   popad 
+   add esp, 4 
+   iretd
 
 ALIGN	16
 hwint01:		; Interrupt routine for irq 1 (keyboard)
@@ -157,7 +247,6 @@ hwint15:		; Interrupt routine for irq 15
 	hwint_slave	15
 
 
-
 ; 中断和异常 -- 异常
 divide_error:
 	push	0xFFFFFFFF	; no err code
@@ -223,3 +312,5 @@ exception:
 	add	esp, 4*2	; 让栈顶指向 EIP，堆栈中从顶向下依次是：EIP、CS、EFLAGS
 	hlt
 
+;操作系统帮我们压入栈的信息依次为：eflags, cs, eip; 
+; 我们压入的分别是错误码，vector_code
