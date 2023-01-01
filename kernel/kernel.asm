@@ -18,6 +18,7 @@ extern	disp_pos
 extern disp_str
 extern k_reenter
 
+
 bits 32
 
 [SECTION .bss]
@@ -71,6 +72,8 @@ _start:
 	; 把esp从loader挪到KERNEL
     mov esp, StackTop
 
+	mov	dword [disp_pos], 0
+
     sgdt [gdt_ptr] ;保存老的GDT到kernel空间
     call cstart 	
     lgdt [gdt_ptr]	;从kernel空间重新加载gdt
@@ -92,8 +95,6 @@ csinit:		; “这个跳转指令强制使用刚刚初始化的结构”——<<O
 	ltr ax
 
 	jmp happy_main
-
-	jmp $
 
 	;hlt
   
@@ -132,6 +133,10 @@ restart:
 
 ALIGN	16
 hwint00:		; Interrupt routine for irq 0 (the clock).
+	;inc byte [gs:0]
+	;mov al, EOI ; reenable 
+   	;out INT_M_CTL, al 
+	;iretd
 	; esp指向StackFrame的高地址，也就是retaddr;
 	; sub 4个字节，也就是把这个地址跳过了。
 	sub esp, 4 
@@ -141,6 +146,11 @@ hwint00:		; Interrupt routine for irq 0 (the clock).
 	push fs 
 	push gs 
 	; 以上是保存工作
+	;进入到ring0之后，除了ss,cs以外，其他的都是其他Ring的，
+	; 所以在开始任务之前需要把其他的seg寄存器设置成正确的
+	mov	dx, ss
+	mov	ds, dx
+	mov	es, dx
 
 	;进程调度开始
    inc byte [gs:0]
@@ -153,14 +163,14 @@ hwint00:		; Interrupt routine for irq 0 (the clock).
 	jne .re_enter
 
 	mov esp, StackTop ;把ESP从进程表切走，切到内核栈（用来完成既定工作，例如进程调度等）
-	sti 
+	sti ;开启中断
 
    push clock_int_msg 
    call disp_str 
    add esp, 4
    ; 进程调度结束
 
-	cli 
+	cli ;关闭中断
 
    mov esp, [p_proc_ready]; 离开内核栈，把ESP指向下一个要被调度到的进程表
    lea eax, [esp + P_STACK_TOP]

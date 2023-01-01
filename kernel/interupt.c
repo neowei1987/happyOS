@@ -4,6 +4,7 @@
 #include "public.h"
 #include "global.h"
 
+extern int	disp_pos ;
 /* 本文件内函数声明 */
 PRIVATE void init_idt_desc(unsigned char vector, t_8 desc_type, t_pf_int_handler handler, unsigned char privilege);
 

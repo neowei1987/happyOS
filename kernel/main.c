@@ -3,12 +3,20 @@
 #include "protect.h"
 #include "global.h"
 
+extern void simple();
+
+extern int			disp_pos;
+
 PUBLIC void TestA() {
     int i = 0;
     while (1) {
         disp_str("A");
         disp_int(i++);
         disp_str(".");
+        if (disp_pos >= 0xF8E) {
+            disp_pos = 0;
+        }
+        //simple();
         delay(1);
     }
 }
@@ -37,7 +45,7 @@ PUBLIC int happy_main() {
 
     p_proc->regs.eip = (u32)TestA;
     p_proc->regs.esp = (u32)task_stack + STACK_SIZE_TOTAL;
-    p_proc->regs.eflags = 0x1202; //IF = 1, IOPL = 1; bit2 is always 1 WHY？？
+    p_proc->regs.eflags = 0x1202; //IF = 1(打开中断), IOPL = 1; bit2 is always 1 WHY？？
 
     p_proc_ready = proc_table;
 

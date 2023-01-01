@@ -20,7 +20,7 @@ PUBLIC void cstart() {
     disp_str("-----Init IDT-----\n");
     t_16* p_idt_limit = (t_16*)(idt_ptr);
 	t_32* p_idt_base  = (t_32*)(idt_ptr + 2); 
-    *p_idt_limit = IDT_SIZE * sizeof(GATE) - 1;
+    *p_idt_limit = IDT_SIZE * sizeof(GATE);
     *p_idt_base = (t_32)idt;
 
     disp_str("-----Init descriptor-----\n");

@@ -5,10 +5,7 @@
 ;                                                       Forrest Yu, 2005
 ; ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-
-[SECTION .data]
-
-disp_pos			dd	0
+extern disp_pos
 
 [SECTION .text]
 
@@ -17,15 +14,24 @@ global	disp_str
 global	disp_color_str
 global	out_byte
 global	in_byte
+global simple
 
+simple:
+	inc byte [gs:640]
+	ret
 ; ========================================================================
 ;                  void disp_str(char * info);
 ; ========================================================================
 disp_str:
-	push	ebp
+	push ebp
+	push eax
+	push edi
+	push esi
+	push edx
+	push ebx
 	mov	ebp, esp
 
-	mov	esi, [ebp + 8]	; pszInfo
+	mov	esi, [ebp + 28]	; pszInfo
 	mov	edi, [disp_pos]
 	mov	ah, 0Fh
 .1:
@@ -52,7 +58,11 @@ disp_str:
 
 .2:
 	mov	[disp_pos], edi
-
+	pop ebx
+	pop edx
+	pop esi
+	pop edi
+	pop eax
 	pop	ebp
 	ret
 
@@ -62,11 +72,16 @@ disp_str:
 ; ========================================================================
 disp_color_str:
 	push	ebp
+	push eax
+	push edi
+	push esi
+	push edx
+	push ebx
 	mov	ebp, esp
 
-	mov	esi, [ebp + 8]	; pszInfo
+	mov	esi, [ebp + 28]	; pszInfo
 	mov	edi, [disp_pos]
-	mov	ah, [ebp + 12]	; color
+	mov	ah, [ebp + 32]	; color
 .1:
 	lodsb
 	test	al, al
@@ -91,7 +106,11 @@ disp_color_str:
 
 .2:
 	mov	[disp_pos], edi
-
+	pop ebx
+	pop edx
+	pop esi
+	pop edi
+	pop eax
 	pop	ebp
 	ret
 

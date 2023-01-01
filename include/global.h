@@ -8,7 +8,6 @@
 #define	EXTERN
 #endif
 
-EXTERN	int			disp_pos;
 EXTERN	t_8			gdt_ptr[6];	// 0~15:Limit  16~47:Base
 EXTERN	DESCRIPTOR	gdt[GDT_SIZE];
 EXTERN	t_8			idt_ptr[6];	// 0~15:Limit  16~47:Base
@@ -17,8 +16,7 @@ EXTERN TSS      tss;
 
 EXTERN	PROCESS*	p_proc_ready;
 
-EXTERN PROCESS      proc_table[NR_TASKS];
-EXTERN	char		task_stack[STACK_SIZE_TOTAL];
-
 EXTERN u32 k_reenter;
 
+extern PROCESS      proc_table[];
+extern char		task_stack[];

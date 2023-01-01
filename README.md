@@ -53,3 +53,9 @@ nasm -f elf32 -o kernel_i386_32.o kernel.asm
 链接，-m表示模拟器模式 elf_i386 也就是32位ELF
 x86_64-linux-gnu-ld -m elf_i386 -n -s -Ttext 0x30400 -o kernel.bin kernel_i386_32.o
 下面的-n参数，会忽略4k对齐要求，大幅降低elf文件大小【耗费半天】
+
+2023.1.1 07:59
+
+不知何故，程序运行一段时间后，EIP、ESP等寄存器会被覆盖成“随机数据”，导致运行时出现GP。
+
+实验半小时，未能复现问题.

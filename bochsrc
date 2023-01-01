@@ -16,6 +16,7 @@ keyboard: keymap=/usr/local/Cellar/bochs/2.7/share/bochs/keymaps/sdl2-pc-us.map
 #ata0: enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14
 #ata0-master: type=disk, path=c.img, mode=flat, cylinders=306, heads=4, spt=17
 floppya: 1_44=a.img, status=inserted
+#floppya: 1_44=TINIX.img, status=inserted
 #floppyb: 1_44=b.img, status=inserted
 #boot: c
 boot: a

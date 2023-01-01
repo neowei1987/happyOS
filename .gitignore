@@ -1,5 +1,5 @@
 *.com
-*.out
+bochs.out
 *.img
 *.o
 *.bin

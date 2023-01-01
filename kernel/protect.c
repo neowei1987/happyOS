@@ -41,13 +41,13 @@ PUBLIC void init_descriptors()
         vir2phys(seg2phys(SELECTOR_KERNEL_DS), &tss), 
         sizeof(tss), 
         DA_386TSS);
-
+    tss.iobase = sizeof(tss); //没有IO许可位图
 
     //填充GDT中，进程的LDT描述符
 	init_descriptor(gdt + INDEX_LDT_FIRST,
         //0,
         vir2phys(seg2phys(SELECTOR_KERNEL_DS), proc_table[0].ldts), 
-        LDT_SIZE * sizeof(DESCRIPTOR), 
+        LDT_SIZE * sizeof(DESCRIPTOR) - 1, 
         DA_LDT);
 }
 
