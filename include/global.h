@@ -23,3 +23,7 @@ extern char		task_stack[];
 extern TASK    task_table[];
 
 extern irq_handler irq_table[];
+
+extern t_sys_call	sys_call_table[];
+
+EXTERN int ticks;

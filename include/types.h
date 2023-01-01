@@ -26,4 +26,6 @@ typedef	void	(*t_pf_int_handler)	();
 
 typedef void (*irq_handler) (int);
 
+typedef	void*	t_sys_call;
+
 #endif//TYPES_H

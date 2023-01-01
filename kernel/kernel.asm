@@ -9,6 +9,7 @@ extern 	happy_main
 extern	exception_handler
 extern	spurious_irq
 extern irq_table;
+extern sys_call_table;
 
 ; 导入全局变量
 extern	gdt_ptr
@@ -65,6 +66,7 @@ global	hwint12
 global	hwint13
 global	hwint14
 global	hwint15
+global sys_call
 
 [section .text]
 
@@ -114,7 +116,7 @@ save:
 	mov ds, dx 
 	mov es, dx 
 
-	mov eax, esp ; esp指向进程表开始位置【低地址】
+	mov esi, esp ; esp指向进程表开始位置【低地址】
 
 	inc dword [k_reenter]
 	cmp dword [k_reenter], 0
@@ -122,10 +124,10 @@ save:
 	; 没有重入，从RING1 到 RING0，需要切换ss
 	mov esp, StackTop ;把ESP从进程表切走，切到内核栈（用来完成既定工作，例如进程调度等）
 	push restart ; 
-	jmp [eax + RETADR - P_STACKBASE];  这个是继续完成save函数的下一句，save最后的一句是return，其实是return到上面刚刚push进去的restart函数
+	jmp [esi + RETADR - P_STACKBASE];  这个是继续完成save函数的下一句，save最后的一句是return，其实是return到上面刚刚push进去的restart函数
 .1: ; 已经在内核态中，不需要再切换
 	push restart_reenter ; 
-	jmp [eax + RETADR - P_STACKBASE]; 
+	jmp [esi + RETADR - P_STACKBASE]; 
 restart:
 	mov esp, [p_proc_ready]
 	lldt [esp + P_LDT_SEL]
@@ -309,3 +311,11 @@ exception:
 
 ;操作系统帮我们压入栈的信息依次为：eflags, cs, eip; 
 ; 我们压入的分别是错误码，vector_code
+
+sys_call:
+	call save 
+	sti 
+	call [sys_call_table + eax * 4]
+	mov [esi + EAXREG - P_STACKBASE], eax 
+	cli 
+	ret 

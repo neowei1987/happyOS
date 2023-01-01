@@ -27,7 +27,7 @@ DASMFLAGS	= -u -o $(ENTRYPOINT) -e $(ENTRYOFFSET)
 # This Program
 TINIXBOOT	= boot/boot.bin boot/loader.bin
 TINIXKERNEL	= kernel.bin
-OBJS		= kernel/kernel.o kernel/start.o kernel/clock.o \
+OBJS		= kernel/kernel.o kernel/syscall.o kernel/start.o kernel/clock.o \
 			lib/klib.o lib/memory.o lib/mylib.o \
 			kernel/global.o kernel/main.o kernel/8259.o kernel/interupt.o kernel/protect.o
 DASMOUTPUT	= kernel.bin.asm
@@ -77,7 +77,9 @@ kernel/clock.o : kernel/clock.c ./include/types.h ./include/const.h ./include/pr
 kernel/protect.o : kernel/protect.c ./include/types.h ./include/const.h ./include/protect.h
 	$(CC) $(CFLAGS) -o $@ $<
 
-kernel/main.o : kernel/main.c ./include/types.h ./include/const.h ./include/protect.h
+kernel/main.o : kernel/main.c include/public.h include/types.h include/const.h \
+		include/process.h include/protect.h include/process.h include/protect.h \
+		include/global.h
 	$(CC) $(CFLAGS) -o $@ $<
 
 kernel/interupt.o : kernel/interupt.c ./include/types.h ./include/const.h ./include/protect.h
@@ -90,6 +92,9 @@ lib/mylib.o: lib/mylib.c include/types.h include/const.h include/protect.h inclu
 	$(CC) $(CFLAGS) -o $@ $<
 
 kernel/kernel.o : kernel/kernel.asm
+	$(ASM) $(ASMKFLAGS) -o $@ $<
+
+kernel/syscall.o : kernel/syscall.asm
 	$(ASM) $(ASMKFLAGS) -o $@ $<
 
 lib/klib.o : lib/klib.asm

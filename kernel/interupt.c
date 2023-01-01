@@ -42,6 +42,7 @@ void	hwint13();
 void	hwint14();
 void	hwint15();
 
+extern void sys_call();
 
 /*======================================================================*
                             init_idt
@@ -85,6 +86,7 @@ PUBLIC void init_idt()
 	init_idt_desc(INT_VECTOR_IRQ8 + 5,	DA_386IGate, hwint13,			PRIVILEGE_KRNL);
 	init_idt_desc(INT_VECTOR_IRQ8 + 6,	DA_386IGate, hwint14,			PRIVILEGE_KRNL);
 	init_idt_desc(INT_VECTOR_IRQ8 + 7,	DA_386IGate, hwint15,			PRIVILEGE_KRNL);
+	init_idt_desc(INT_VECTOR_SYS_CALL,	DA_386IGate, sys_call,			PRIVILEGE_USER);
 }
 
 

@@ -7,11 +7,12 @@ extern void simple();
 
 extern int			disp_pos;
 
+
 PUBLIC void TestA() {
     int i = 0;
     while (1) {
         disp_str("A");
-        disp_int(i++);
+        disp_int(get_ticks());
         disp_str(".");
         if (disp_pos >= 0xF8E) {
             disp_pos = 0;
@@ -42,6 +43,7 @@ PUBLIC int happy_main() {
     put_irq_handler(CLOCK_IRQ, clock_handler);
     enable_irq(CLOCK_IRQ);
     k_reenter = 0;
+    ticks = 0;
     u16 selector_ldt = SELECTOR_LDT_FIRST; //28
     char* p_task_stack = task_stack + STACK_SIZE_TOTAL;
 
