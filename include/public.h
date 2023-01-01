@@ -25,5 +25,7 @@ PUBLIC void put_irq_handler(int irq, irq_handler handler);
 
 PUBLIC void clock_handler(int irq);
 
+//clock 
+PUBLIC void milli_delay(int milli_sec);
 
 #endif//PUBLIC_H

@@ -18,7 +18,7 @@ PUBLIC void TestA() {
             disp_pos = 0;
         }
         //simple();
-        delay(1);
+        milli_delay(1000);
     }
 }
 
@@ -28,7 +28,7 @@ PUBLIC void TestB() {
         disp_str("B");
         disp_int(i++);
         disp_str(".");
-        delay(1);
+        milli_delay(1000);
     }
 }
 
@@ -42,6 +42,12 @@ PUBLIC int happy_main() {
     //设置中断处理函数
     put_irq_handler(CLOCK_IRQ, clock_handler);
     enable_irq(CLOCK_IRQ);
+
+    /* 初始化 8253 PIT*/
+    out_byte(TIMER_MODE, RATE_GENERATOR);
+    out_byte(TIMER0, (t_8)(TIMER_FREQ/HZ));
+    out_byte(TIMER0, (t_8)((TIMER_FREQ/HZ) >> 8));
+
     k_reenter = 0;
     ticks = 0;
     u16 selector_ldt = SELECTOR_LDT_FIRST; //28
