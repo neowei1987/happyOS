@@ -5,28 +5,31 @@
 #include "protect.h"
 #include "const.h"
 typedef struct s_stackframe {
+    //以下在save中挨个push
     u32 gs;
     u32 fs;
     u32 es;
     u32 ds;
+
+    // save中通过pushad来设置
     u32 edi;
     u32 esi;
     u32 ebp;
-    //以上pushed by save
-    u32 kernel_esp;  //popad 忽略这些。
+    u32 kernel_esp;
     u32 ebx; 
     u32 edx;
     u32 ecx;
     u32 eax;
 
-    u32 ret_addr; //kernel save 
+    //kernel 调用save的时候，把save的下一句地址放到了这里！
+    u32 ret_addr; 
 
+    //以下几个 pushed by CPU during interupt
     u32 eip; 
     u32 cs;
     u32 eflags;
     u32 esp;
     u32 ss;
-    //以上几个 pushed by CPU during interupt
 
 }STACK_FRAME;
 

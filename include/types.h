@@ -24,4 +24,6 @@ typedef	unsigned int		t_port;
 
 typedef	void	(*t_pf_int_handler)	();
 
+typedef void (*irq_handler) (int);
+
 #endif//TYPES_H

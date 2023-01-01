@@ -14,4 +14,8 @@ PUBLIC void	init_descriptors();
 
 PUBLIC	void* memcpy(void* p_dst, void* p_src, int size);
 
+PUBLIC void put_irq_handler(int irq, irq_handler handler);
+
+PUBLIC void clock_handler(int irq);
+
 #endif//PUBLIC_H

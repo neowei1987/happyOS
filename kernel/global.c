@@ -10,3 +10,5 @@ int			disp_pos;
 
 PROCESS      proc_table[NR_TASKS];
 char		task_stack[STACK_SIZE_TOTAL];
+
+irq_handler irq_table[NR_IRQ];

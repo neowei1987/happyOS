@@ -8,7 +8,7 @@ extern	cstart
 extern 	happy_main
 extern	exception_handler
 extern	spurious_irq
-extern clock_handler;
+extern irq_table;
 
 ; 导入全局变量
 extern	gdt_ptr
@@ -99,13 +99,41 @@ csinit:		; “这个跳转指令强制使用刚刚初始化的结构”——<<O
 
 	;hlt
   
+save:
+	;保存原来的寄存器
+	pushad 
+	push ds 
+	push es 
+	push fs 
+	push gs 
+
+	; 重新设置ds, es 
+	;进入到ring0之后，除了ss,cs以外，其他的都是其他Ring的，
+	; 所以在开始任务之前需要把其他的seg寄存器设置成正确的
+	mov dx, ss 
+	mov ds, dx 
+	mov es, dx 
+
+	mov eax, esp ; esp指向进程表开始位置【低地址】
+
+	inc dword [k_reenter]
+	cmp dword [k_reenter], 0
+	jne .1 
+	; 没有重入，从RING1 到 RING0，需要切换ss
+	mov esp, StackTop ;把ESP从进程表切走，切到内核栈（用来完成既定工作，例如进程调度等）
+	push restart ; 
+	jmp [eax + RETADR - P_STACKBASE];  这个是继续完成save函数的下一句，save最后的一句是return，其实是return到上面刚刚push进去的restart函数
+.1: ; 已经在内核态中，不需要再切换
+	push restart_reenter ; 
+	jmp [eax + RETADR - P_STACKBASE]; 
 restart:
 	mov esp, [p_proc_ready]
 	lldt [esp + P_LDT_SEL]
 
 	lea eax, [esp + P_STACK_TOP]
 	mov dword [tss + TSS3_S_SP0], eax
-
+restart_reenter:
+	dec dword[k_reenter]
 	pop gs 
 	pop fs 
 	pop es 
@@ -113,84 +141,36 @@ restart:
 	popad 
 	add esp, 4 
 	iretd
-;restart_reenter:
-;	dec dword [k_reenter]
-;	pop gs 
-;	pop fs 
-;	pop es
-;	pop ds 
-;	popad 
-;	add esp, 4 
-;	iret 
 
   ; 中断和异常 -- 硬件中断
 ; ---------------------------------
 %macro	hwint_master	1
-	push	%1
-	call	spurious_irq
-	add	esp, 4
-	hlt
+	call save ; 调用保存现场函数（CPU会把下一句的地址放入retaddr中）
+	;屏蔽当前中断
+	in al, INT_M_CTLMASK
+	or al, (1 << %1)
+	out INT_M_CTLMASK,al 
+	;置EOI位
+	mov al, EOI ; reenable 
+   out INT_M_CTL, al 
+   ; 打开中断【其他中断被打开，本中断被屏蔽】
+   sti 
+   ; 调用处理程序
+   push %1 
+   call [irq_table + 4 * %1]
+   pop ecx ; TODO 为啥pop到ECX中呢？
+   ; 重新关闭中断
+   cli 
+	; 恢复当前中断
+	in al, INT_M_CTLMASK
+	and al, ~(1 << %1)
+	out INT_M_CTLMASK, al 
+	ret 
 %endmacro
 
 ALIGN	16
 hwint00:		; Interrupt routine for irq 0 (the clock).
-	;inc byte [gs:0]
-	;mov al, EOI ; reenable 
-   	;out INT_M_CTL, al 
-	;iretd
-	; esp指向StackFrame的高地址，也就是retaddr;
-	; sub 4个字节，也就是把这个地址跳过了。
-	sub esp, 4 
-	pushad 
-	push ds 
-	push es 
-	push fs 
-	push gs 
-	; 以上是保存工作
-	;进入到ring0之后，除了ss,cs以外，其他的都是其他Ring的，
-	; 所以在开始任务之前需要把其他的seg寄存器设置成正确的
-	mov	dx, ss
-	mov	ds, dx
-	mov	es, dx
-
-	;进程调度开始
-   inc byte [gs:0]
-
-   mov al, EOI ; reenable 
-   out INT_M_CTL, al 
-
-	inc dword [k_reenter]
-	cmp dword [k_reenter], 0
-	jne .re_enter
-
-	mov esp, StackTop ;把ESP从进程表切走，切到内核栈（用来完成既定工作，例如进程调度等）
-	sti ;开启中断
-
-	push 0
-	call clock_handler
-	add esp, 4 
-   ;push clock_int_msg 
-   ;call disp_str 
-   ;add esp, 4
-
-   ; 进程调度结束
-
-	cli ;关闭中断
-
-   mov esp, [p_proc_ready]; 离开内核栈，把ESP指向下一个要被调度到的进程表
-   lea eax, [esp + P_STACK_TOP]
-   mov dword [tss + TSS3_S_SP0], eax 
-.re_enter:
-	dec dword[k_reenter]
-
-	; 以下是恢复工作
-   pop gs 
-   pop fs 
-   pop es 
-   pop ds 
-   popad 
-   add esp, 4 
-   iretd
+	hwint_master	0
 
 ALIGN	16
 hwint01:		; Interrupt routine for irq 1 (keyboard)
