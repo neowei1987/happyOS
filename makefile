@@ -27,7 +27,7 @@ DASMFLAGS	= -u -o $(ENTRYPOINT) -e $(ENTRYOFFSET)
 # This Program
 TINIXBOOT	= boot/boot.bin boot/loader.bin
 TINIXKERNEL	= kernel.bin
-OBJS		= kernel/kernel.o kernel/start.o \
+OBJS		= kernel/kernel.o kernel/start.o kernel/clock.o \
 			lib/klib.o lib/memory.o lib/mylib.o \
 			kernel/global.o kernel/main.o kernel/8259.o kernel/interupt.o kernel/protect.o
 DASMOUTPUT	= kernel.bin.asm
@@ -69,6 +69,9 @@ $(TINIXKERNEL) : $(OBJS)
 	$(LD) $(LDFLAGS) -o $(TINIXKERNEL) $(OBJS)
 
 kernel/start.o : kernel/start.c ./include/types.h ./include/const.h ./include/protect.h
+	$(CC) $(CFLAGS) -o $@ $<
+
+kernel/clock.o : kernel/clock.c ./include/types.h ./include/const.h ./include/protect.h
 	$(CC) $(CFLAGS) -o $@ $<
 
 kernel/protect.o : kernel/protect.c ./include/types.h ./include/const.h ./include/protect.h

@@ -4,6 +4,7 @@
 #include "const.h"
 #include "protect.h"
 #include "global.h"
+#include "func_declare.h"
 
 int			disp_pos;
 

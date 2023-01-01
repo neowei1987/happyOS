@@ -58,4 +58,5 @@ x86_64-linux-gnu-ld -m elf_i386 -n -s -Ttext 0x30400 -o kernel.bin kernel_i386_3
 
 不知何故，程序运行一段时间后，EIP、ESP等寄存器会被覆盖成“随机数据”，导致运行时出现GP。
 
-实验半小时，未能复现问题.
+实验半小时，未能复现问题. 
+

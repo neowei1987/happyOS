@@ -3,7 +3,7 @@
 
 #include "types.h"
 #include "protect.h"
-
+#include "const.h"
 typedef struct s_stackframe {
     u32 gs;
     u32 fs;
@@ -37,5 +37,12 @@ typedef struct s_proc {
     u32 pid;
     char p_name[16];
 } PROCESS;
+
+typedef void (*task_f) ();
+typedef struct s_task {
+    task_f initial_eip;
+    int stack_size;
+    char name[32];
+} TASK;
 
 #endif//PROCESS_H

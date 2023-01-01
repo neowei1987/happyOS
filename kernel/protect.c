@@ -43,12 +43,15 @@ PUBLIC void init_descriptors()
         DA_386TSS);
     tss.iobase = sizeof(tss); //没有IO许可位图
 
-    //填充GDT中，进程的LDT描述符
-	init_descriptor(gdt + INDEX_LDT_FIRST,
-        //0,
-        vir2phys(seg2phys(SELECTOR_KERNEL_DS), proc_table[0].ldts), 
-        LDT_SIZE * sizeof(DESCRIPTOR) - 1, 
-        DA_LDT);
+    u16 selector_ldt = SELECTOR_LDT_FIRST; //28
+    for (int i = 0; i < NR_TASKS; ++i) {
+        //填充GDT中，进程的LDT描述符
+        init_descriptor(gdt + (selector_ldt >> 3),
+            vir2phys(seg2phys(SELECTOR_KERNEL_DS), proc_table[i].ldts), 
+            LDT_SIZE * sizeof(DESCRIPTOR) - 1, 
+            DA_LDT);
+        selector_ldt += (1 << 3); 
+    }
 }
 
 

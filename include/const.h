@@ -10,12 +10,13 @@
 #define LDT_SIZE    2
 
 /* Number of tasks */
-#define NR_TASKS	1
+#define NR_TASKS 2
 
 /* stacks of tasks */
 #define STACK_SIZE_TESTA	0x8000
+#define STACK_SIZE_TESTB	0x8000
 
-#define STACK_SIZE_TOTAL	STACK_SIZE_TESTA
+#define STACK_SIZE_TOTAL	STACK_SIZE_TESTA + STACK_SIZE_TESTB
 
 /* 权限 */
 #define	PRIVILEGE_KRNL	0

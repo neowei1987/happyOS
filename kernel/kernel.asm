@@ -8,6 +8,7 @@ extern	cstart
 extern 	happy_main
 extern	exception_handler
 extern	spurious_irq
+extern clock_handler;
 
 ; 导入全局变量
 extern	gdt_ptr
@@ -165,9 +166,13 @@ hwint00:		; Interrupt routine for irq 0 (the clock).
 	mov esp, StackTop ;把ESP从进程表切走，切到内核栈（用来完成既定工作，例如进程调度等）
 	sti ;开启中断
 
-   push clock_int_msg 
-   call disp_str 
-   add esp, 4
+	push 0
+	call clock_handler
+	add esp, 4 
+   ;push clock_int_msg 
+   ;call disp_str 
+   ;add esp, 4
+
    ; 进程调度结束
 
 	cli ;关闭中断
