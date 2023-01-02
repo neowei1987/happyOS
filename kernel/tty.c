@@ -6,7 +6,7 @@
 PRIVATE void init_tty(TTY* p_tty)  {
     p_tty->in_count = 0;
     p_tty->p_inbuf_head = p_tty->p_inbuf_tail = p_tty->in_buf;
-    p_tty->p_console = console_table + (p_tty - tty_table);
+    init_screen(p_tty);
 }
 
 PRIVATE void tty_do_read(TTY* p_tty) {
@@ -34,7 +34,7 @@ PUBLIC void tty_task () {
     for (int i = 0; i < NR_CONSOLES; ++i) {
         init_tty(tty_table + i);
     }
-    nr_current_console = 0;
+    select_console(0);
 
     while (1) {
         for (int i = 0; i < NR_CONSOLES; ++i) {
@@ -59,34 +59,28 @@ PUBLIC void in_process(TTY* p_tty, t_32 key)
             }
             p_tty->in_count++;
         }
-    }
-
-    /*
-	char output[2] = {'\0', '\0'};
-	if (!(key & FLAG_EXT)) {
-		output[0] = key & 0xFF;
-		disp_str(output);
-
-	} else {
+    } else {
         int raw_code = key & MASK_RAW;
-		switch(raw_code) {
-		case UP: //向上卷15行
-			if ((key & FLAG_SHIFT_L) || (key & FLAG_SHIFT_R)) {	// Shift + Up 
-				disable_int();
-				out_byte(CRTC_ADDR_REG, CRTC_DATA_IDX_START_ADDR_H);
-				out_byte(CRTC_DATA_REG, ((80*15) >> 8) & 0xFF);
-				out_byte(CRTC_ADDR_REG, CRTC_DATA_IDX_START_ADDR_L);
-				out_byte(CRTC_DATA_REG, (80*15) & 0xFF);
-				enable_int();
-			}
-			break;
-		case DOWN:
-			if ((key & FLAG_SHIFT_L) || (key & FLAG_SHIFT_R)) {	// Shift + Down 
+        switch(raw_code) {
+        case F1:
+		case F2:
+		case F3:
+		case F4:
+		case F5:
+		case F6:
+		case F7:
+		case F8:
+		case F9:
+		case F10:
+		case F11:
+		case F12:
+			if ((key & FLAG_ALT_L) || (key & FLAG_ALT_R)) {	/* Alt + F1~F12 */
+				select_console(raw_code - F1);
 			}
 			break;
 		default:
 			break;
-		}
-    }*/
+        }
+    }
 }
 
