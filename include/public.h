@@ -39,5 +39,6 @@ PUBLIC void schedule();
 
 //tty
 PUBLIC void tty_task();
+PUBLIC void in_process(t_32 key);
 
 #endif//PUBLIC_H
