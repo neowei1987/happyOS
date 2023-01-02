@@ -18,7 +18,7 @@ PUBLIC void TestA() {
             disp_pos = 0;
         }
         //simple();
-        milli_delay(1000);
+        milli_delay(10);
     }
 }
 
@@ -28,13 +28,13 @@ PUBLIC void TestB() {
         disp_str("B");
         disp_int(i++);
         disp_str(".");
-        milli_delay(1000);
+        milli_delay(10);
     }
 }
 
 TASK    task_table[NR_TASKS] = {
-    {TestA, STACK_SIZE_TESTA, "TestA"},
-    {TestB, STACK_SIZE_TESTB, "TestB"}
+    {TestA, STACK_SIZE_TESTA, "TestA", 15},
+    {TestB, STACK_SIZE_TESTB, "TestB", 5}
 };
 
 PUBLIC int happy_main() {
@@ -58,6 +58,8 @@ PUBLIC int happy_main() {
         PROCESS* p_proc = proc_table + i;
         //TODO copy task name
         p_proc->pid = i;
+
+        p_proc->ticks = p_proc->priority = p_task->priority;
 
         //LDT selector
         p_proc->ldt_selector = selector_ldt;

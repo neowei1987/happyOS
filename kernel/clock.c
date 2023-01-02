@@ -3,15 +3,19 @@
 
 PUBLIC void clock_handler(int irq) {
     ticks++;
+    p_proc_ready->ticks--;
+
     disp_str("#");
     if (k_reenter != 0) {
         disp_str("!");
         return;
     }
-    p_proc_ready++;
-    if (p_proc_ready >= proc_table + NR_TASKS) {
-        p_proc_ready = proc_table;
+
+    if (p_proc_ready->ticks > 0) {
+        return;
     }
+
+    schedule();
 }
 
 PUBLIC int sys_get_ticks() {

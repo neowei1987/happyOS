@@ -37,6 +37,10 @@ typedef struct s_proc {
     STACK_FRAME regs;
     u16 ldt_selector;
     DESCRIPTOR ldts[LDT_SIZE];
+
+    int ticks;
+    int priority;
+
     u32 pid;
     char p_name[16];
 } PROCESS;
@@ -46,6 +50,7 @@ typedef struct s_task {
     task_f initial_eip;
     int stack_size;
     char name[32];
+    int priority;
 } TASK;
 
 #endif//PROCESS_H

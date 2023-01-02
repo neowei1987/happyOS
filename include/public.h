@@ -28,4 +28,7 @@ PUBLIC void clock_handler(int irq);
 //clock 
 PUBLIC void milli_delay(int milli_sec);
 
+//process
+PUBLIC void schedule();
+
 #endif//PUBLIC_H
