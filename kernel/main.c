@@ -7,13 +7,12 @@ extern void simple();
 
 extern int			disp_pos;
 
-
 PUBLIC void TestA() {
     int i = 0;
     while (1) {
-        disp_str("A");
-        disp_int(get_ticks());
-        disp_str(".");
+        //disp_str("A");
+        //disp_int(get_ticks());
+        //disp_str(".");
         if (disp_pos >= 0xF8E) {
             disp_pos = 0;
         }
@@ -25,28 +24,23 @@ PUBLIC void TestA() {
 PUBLIC void TestB() {
     int i = 0;
     while (1) {
-        disp_str("B");
-        disp_int(i++);
-        disp_str(".");
+        //disp_str("B");
+        //disp_int(i++);
+        //disp_str(".");
         milli_delay(10);
     }
 }
 
 TASK    task_table[NR_TASKS] = {
-    {TestA, STACK_SIZE_TESTA, "TestA", 15},
+    {tty_task, STACK_SIZE_TASK_TTY, "tty", 15},
     {TestB, STACK_SIZE_TESTB, "TestB", 5}
 };
 
 PUBLIC int happy_main() {
     disp_str("----kernel_main_begin____\n");
-    //设置中断处理函数
-    put_irq_handler(CLOCK_IRQ, clock_handler);
-    enable_irq(CLOCK_IRQ);
 
-    /* 初始化 8253 PIT*/
-    out_byte(TIMER_MODE, RATE_GENERATOR);
-    out_byte(TIMER0, (t_8)(TIMER_FREQ/HZ));
-    out_byte(TIMER0, (t_8)((TIMER_FREQ/HZ) >> 8));
+    init_clock();
+    init_keyboard();
 
     k_reenter = 0;
     ticks = 0;

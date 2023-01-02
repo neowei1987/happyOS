@@ -27,9 +27,11 @@ DASMFLAGS	= -u -o $(ENTRYPOINT) -e $(ENTRYOFFSET)
 # This Program
 TINIXBOOT	= boot/boot.bin boot/loader.bin
 TINIXKERNEL	= kernel.bin
-OBJS		= kernel/kernel.o kernel/syscall.o kernel/start.o kernel/clock.o \
-			lib/klib.o lib/memory.o lib/mylib.o \
-			kernel/global.o kernel/main.o kernel/8259.o kernel/interupt.o kernel/protect.o
+OBJS		= kernel/kernel.o kernel/start.o kernel/main.o \
+			kernel/8259.o kernel/interupt.o kernel/protect.o kernel/syscall.o \
+			kernel/clock.o kernel/keyboard.o kernel/tty.o \
+			kernel/process.o lib/klib.o lib/memory.o lib/mylib.o \
+			kernel/global.o 
 DASMOUTPUT	= kernel.bin.asm
 
 # All Phony Targets
@@ -78,6 +80,21 @@ kernel/protect.o : kernel/protect.c ./include/types.h ./include/const.h ./includ
 	$(CC) $(CFLAGS) -o $@ $<
 
 kernel/main.o : kernel/main.c include/public.h include/types.h include/const.h \
+		include/process.h include/protect.h include/process.h include/protect.h \
+		include/global.h
+	$(CC) $(CFLAGS) -o $@ $<
+
+kernel/keyboard.o : kernel/keyboard.c include/public.h include/types.h include/const.h \
+		include/process.h include/protect.h include/process.h include/protect.h \
+		include/global.h
+	$(CC) $(CFLAGS) -o $@ $<
+
+kernel/tty.o : kernel/tty.c include/public.h include/types.h include/const.h \
+		include/process.h include/protect.h include/process.h include/protect.h \
+		include/global.h
+	$(CC) $(CFLAGS) -o $@ $<
+
+kernel/process.o : kernel/process.c include/public.h include/types.h include/const.h \
 		include/process.h include/protect.h include/process.h include/protect.h \
 		include/global.h
 	$(CC) $(CFLAGS) -o $@ $<
