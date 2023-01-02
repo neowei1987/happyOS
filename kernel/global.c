@@ -7,8 +7,6 @@
 #include "func_declare.h"
 #include "public.h"
 
-int			disp_pos;
-
 PROCESS      proc_table[NR_TASKS];
 char		task_stack[STACK_SIZE_TOTAL];
 

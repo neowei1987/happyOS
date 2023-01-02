@@ -40,8 +40,7 @@ PUBLIC int happy_main() {
     disp_str("----kernel_main_begin____\n");
 
     init_clock();
-    init_keyboard();
-
+    
     k_reenter = 0;
     ticks = 0;
     u16 selector_ldt = SELECTOR_LDT_FIRST; //28

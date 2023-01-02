@@ -4,6 +4,8 @@
 #include "types.h"
 #include "const.h"
 #include "process.h"
+#include "console.h"
+#include "tty.h"
 
 //klib.asm
 PUBLIC void disable_int();
@@ -39,6 +41,9 @@ PUBLIC void schedule();
 
 //tty
 PUBLIC void tty_task();
-PUBLIC void in_process(t_32 key);
+PUBLIC void in_process(TTY* p_tty, t_32 key);
+
+//console
+PUBLIC void out_char(CONSOLE* p_console, char ch);
 
 #endif//PUBLIC_H

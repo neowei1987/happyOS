@@ -2,6 +2,7 @@
 #include "public.h"
 #include "keyboard.h"
 #include "keymap.h"
+#include "tty.h"
 
 PRIVATE KB_INPUT kb_in;
 PRIVATE	t_bool		code_with_E0;
@@ -61,7 +62,7 @@ PRIVATE t_8 get_byte_from_kb_buf()	/* 从键盘缓冲区中读取下一个字节
 }
 
 
-PUBLIC void keyboard_read() {
+PUBLIC void keyboard_read(TTY* p_tty) {
 	t_8	scan_code;
 	char	output[2];
 	t_bool	make;	/* TRUE : make  */
@@ -166,6 +167,6 @@ PUBLIC void keyboard_read() {
         key |= alt_l	? FLAG_ALT_L	: 0;
         key |= alt_r	? FLAG_ALT_R	: 0;
 
-        in_process(key);
+        in_process(p_tty, key);
     }
 }
