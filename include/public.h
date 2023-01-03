@@ -48,4 +48,8 @@ PUBLIC void out_char(CONSOLE* p_console, char ch);
 PUBLIC void init_screen(TTY* p_tty);
 PUBLIC void select_console(int nr_console);
 
+PUBLIC int write(int fd, char* buf, int len);
+PUBLIC int sys_write(int fd, char* buf, int len, PROCESS* p_proc);
+
+
 #endif//PUBLIC_H

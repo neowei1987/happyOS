@@ -10,6 +10,13 @@ PRIVATE void set_cursor(int cursor) {
     enable_int();
 }
 
+PRIVATE void flush(CONSOLE* p_console) {
+    if (is_current_console(p_console)) {
+        set_video_start_addr(p_console->current_start_addr);
+        set_cursor(p_console->cursor);
+    }
+}
+
 PUBLIC void init_screen(TTY* p_tty)  {
     int idx_tty = p_tty - tty_table;
     p_tty->p_console = console_table + idx_tty;
@@ -48,8 +55,7 @@ PUBLIC void select_console(int nr_console) {
     }
 
     nr_current_console = nr_console;
-    set_cursor(console_table[nr_console].cursor);
-    set_video_start_addr(console_table[nr_console].current_start_addr);
+    flush();
 }
 
 PUBLIC int is_current_console(CONSOLE* p_console) {
@@ -99,6 +105,6 @@ PUBLIC void scroll_screen(CONSOLE* p_console, int direction) {
             p_console->current_start_addr += SCREEN_WIDTH;
         }
     }
-    set_video_start_addr(p_console->current_start_addr);
-    set_cursor(p_console->cursor);
+
 }
+

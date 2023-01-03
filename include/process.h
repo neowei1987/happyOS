@@ -43,6 +43,7 @@ typedef struct s_proc {
 
     u32 pid;
     char p_name[16];
+    int nr_tty; //所属的tty
 } PROCESS;
 
 typedef void (*task_f) ();

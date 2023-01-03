@@ -25,9 +25,10 @@ PUBLIC void TestB() {
     int i = 0;
     while (1) {
         //disp_str("B");
+        printf("%x", i++);
         //disp_int(i++);
         //disp_str(".");
-        milli_delay(10);
+        milli_delay(10000);
     }
 }
 
@@ -88,6 +89,8 @@ PUBLIC int happy_main() {
         p_proc->regs.eip = (u32)p_task->initial_eip;
         p_proc->regs.esp = (u32)p_task_stack;
         p_proc->regs.eflags = eflags; 
+
+        p_proc->nr_tty = 0;
    
         p_task_stack -= p_task->stack_size;
         selector_ldt += (1 << 3); //偏移量加8 

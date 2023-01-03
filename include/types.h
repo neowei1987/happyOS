@@ -29,4 +29,6 @@ typedef void (*irq_handler) (int);
 
 typedef	void*	t_sys_call;
 
+typedef char * va_list;
+
 #endif//TYPES_H

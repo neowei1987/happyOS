@@ -12,5 +12,5 @@ char		task_stack[STACK_SIZE_TOTAL];
 
 irq_handler irq_table[NR_IRQ];
 
-t_sys_call	sys_call_table[NR_SYS_CALL] = {sys_get_ticks};
+t_sys_call	sys_call_table[NR_SYS_CALL] = {sys_get_ticks, sys_write};
 

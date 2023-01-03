@@ -76,6 +76,6 @@
 
 
 /* system call */
-#define	NR_SYS_CALL	1
+#define	NR_SYS_CALL	2
 
 #endif /* _TINIX_CONST_H_ */
