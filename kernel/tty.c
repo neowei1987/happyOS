@@ -44,24 +44,32 @@ PUBLIC void tty_task () {
     }
 }
 
-
+PRIVATE void put_key(TTY* p_tty, t_32 key) {
+    if (p_tty->in_count < TTY_IN_BYTES) {
+        *(p_tty->p_inbuf_head) = key;
+        p_tty->p_inbuf_head++;
+        if (p_tty->p_inbuf_head == p_tty->in_buf + TTY_IN_BYTES) {
+            p_tty->p_inbuf_head = p_tty->in_buf;
+        }
+        p_tty->in_count++;
+    }
+}
 /*======================================================================*
                            in_process
 *======================================================================*/
 PUBLIC void in_process(TTY* p_tty, t_32 key)
 {   char output[2] = {'\0', '\0'};
 	if (!(key & FLAG_EXT)) { //将键盘输入的内容放入到缓冲区中
-        if (p_tty->in_count < TTY_IN_BYTES) {
-            *(p_tty->p_inbuf_head) = key;
-            p_tty->p_inbuf_head++;
-            if (p_tty->p_inbuf_head == p_tty->in_buf + TTY_IN_BYTES) {
-                p_tty->p_inbuf_head = p_tty->in_buf;
-            }
-            p_tty->in_count++;
-        }
+        put_key(p_tty, key);
     } else {
         int raw_code = key & MASK_RAW;
         switch(raw_code) {
+        case ENTER:
+            put_key(p_tty, '\n');
+        break;
+        case BACKSPACE:
+            put_key(p_tty, '\b');
+            break;
         case F1:
 		case F2:
 		case F3:
@@ -78,6 +86,16 @@ PUBLIC void in_process(TTY* p_tty, t_32 key)
 				select_console(raw_code - F1);
 			}
 			break;
+        case UP:
+            if ((key & FLAG_SHIFT_L) || (key & FLAG_SHIFT_R)) {	/* Shift + up/down */
+				scroll_screen(p_tty->p_console, SCROLL_SCREEN_DOWN);
+			}
+            break;
+        case DOWN:
+            if ((key & FLAG_SHIFT_L) || (key & FLAG_SHIFT_R)) {	/* Shift + up/down */
+				scroll_screen(p_tty->p_console, SCROLL_SCREEN_UP);
+			}
+            break;
 		default:
 			break;
         }

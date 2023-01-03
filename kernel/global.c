@@ -7,7 +7,7 @@
 #include "func_declare.h"
 #include "public.h"
 
-PROCESS      proc_table[NR_TASKS];
+PROCESS     proc_table[NR_TASKS];
 char		task_stack[STACK_SIZE_TOTAL];
 
 irq_handler irq_table[NR_IRQ];

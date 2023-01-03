@@ -11,6 +11,8 @@
 
 /* Number of tasks */
 #define NR_TASKS 2
+//用户进程数量
+#define NR_USER_PROCESS 0
 
 #define NR_CONSOLES 3
 
