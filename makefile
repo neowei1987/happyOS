@@ -30,7 +30,7 @@ TINIXKERNEL	= kernel.bin
 OBJS		= kernel/kernel.o kernel/start.o kernel/main.o \
 			kernel/8259.o kernel/interupt.o kernel/protect.o kernel/syscall.o \
 			kernel/clock.o kernel/keyboard.o kernel/tty.o kernel/console.o \
-			kernel/process.o lib/klib.o lib/memory.o lib/mylib.o \
+			kernel/process.o lib/klib.o lib/memory.o lib/mylib.o lib/string.o\
 			kernel/global.o 
 DASMOUTPUT	= kernel.bin.asm
 
@@ -120,6 +120,9 @@ kernel/syscall.o : kernel/syscall.asm
 	$(ASM) $(ASMKFLAGS) -o $@ $<
 
 lib/klib.o : lib/klib.asm
+	$(ASM) $(ASMKFLAGS) -o $@ $<
+
+lib/string.o : lib/string.asm
 	$(ASM) $(ASMKFLAGS) -o $@ $<
 
 lib/memory.o : lib/memory.asm
