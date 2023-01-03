@@ -44,7 +44,7 @@ PUBLIC void init_descriptors()
     tss.iobase = sizeof(tss); //没有IO许可位图
 
     u16 selector_ldt = SELECTOR_LDT_FIRST; //28
-    for (int i = 0; i < NR_TASKS + NR_USER_PROCESS; ++i) {
+    for (int i = 0; i < NR_TASKS; ++i) {
         //填充GDT中，进程的LDT描述符
         init_descriptor(gdt + (selector_ldt >> 3),
             vir2phys(seg2phys(SELECTOR_KERNEL_DS), proc_table[i].ldts), 

@@ -46,11 +46,15 @@ typedef struct s_proc {
 } PROCESS;
 
 typedef void (*task_f) ();
+
+#define PROCESS_TYPE_TASK 1
+#define PROCESS_TYPE_USER 2
 typedef struct s_task {
     task_f initial_eip;
     int stack_size;
     char name[32];
     int priority;
+    int type; 
 } TASK;
 
 #endif//PROCESS_H
