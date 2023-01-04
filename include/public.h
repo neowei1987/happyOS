@@ -16,6 +16,8 @@ PUBLIC t_8	in_byte(t_port port);
 PUBLIC void	disp_str(char * info);
 PUBLIC void	disp_color_str(char * info, int color);
 
+PUBLIC void debug_trap();
+
 //memory.asm
 PUBLIC	void* memcpy(void* p_dst, void* p_src, int size);
 
@@ -48,8 +50,8 @@ PUBLIC void out_char(CONSOLE* p_console, char ch);
 PUBLIC void init_screen(TTY* p_tty);
 PUBLIC void select_console(int nr_console);
 
-PUBLIC int write(int fd, char* buf, int len);
-PUBLIC int sys_write(int fd, char* buf, int len, PROCESS* p_proc);
+PUBLIC int write(char* buf, int len);
+PUBLIC int sys_write(char* buf, int len, PROCESS* p_proc);
 
 
 #endif//PUBLIC_H

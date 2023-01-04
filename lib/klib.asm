@@ -20,6 +20,8 @@ global enable_irq
 global disable_irq
 global disable_int 
 global enable_int 
+global debug_trap
+
 global simple
 
 simple:
@@ -221,3 +223,7 @@ disable_int:
 enable_int:
 	sti 
 	ret 
+
+debug_trap:
+	xchg bx, bx 
+	ret 	

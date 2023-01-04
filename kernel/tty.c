@@ -112,6 +112,6 @@ PRIVATE int tty_write(TTY* p_tty, char* buf, int len) {
     return len;
 }
 
-PUBLIC int sys_write(int fd, char* buf, int len, PROCESS* p_proc) {
+PUBLIC int sys_write(char* buf, int len, PROCESS* p_proc) {
     return tty_write(tty_table + p_proc->nr_tty, buf, len);
 }

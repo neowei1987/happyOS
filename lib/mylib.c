@@ -94,9 +94,11 @@ int printf(const char *fmt, ...)
 	int i;
 	char buf[256];
 
+	//debug_trap();
+
 	va_list arg = (va_list)((char*)(&fmt) + 4);        /* 4 是参数 fmt 所占堆栈中的大小 */
 	i = vsprintf(buf, fmt, arg);
-	write(1, buf, i);
+	write(buf, i);
 
 	return i;
 }

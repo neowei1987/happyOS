@@ -20,6 +20,5 @@ write:
     mov eax, _NR_write
     mov ebx, [esp + 4] ; fd
     mov ecx, [esp + 8] ; buf
-    mov edx, [esp + 12]; len
     int INT_VECTOR_SYS_CALL
     ret

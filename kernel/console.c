@@ -10,6 +10,16 @@ PRIVATE void set_cursor(int cursor) {
     enable_int();
 }
 
+PRIVATE set_video_start_addr(t_32 addr) {
+    disable_int();
+    out_byte(CRTC_ADDR_REG, CRTC_DATA_IDX_START_ADDR_H);
+    out_byte(CRTC_DATA_REG, ((addr) >> 8) & 0xFF);
+    out_byte(CRTC_ADDR_REG, CRTC_DATA_IDX_START_ADDR_L);
+    out_byte(CRTC_DATA_REG, (addr) & 0xFF);
+    enable_int();
+}
+
+
 PRIVATE void flush(CONSOLE* p_console) {
     if (is_current_console(p_console)) {
         set_video_start_addr(p_console->current_start_addr);
@@ -40,14 +50,6 @@ PUBLIC void init_screen(TTY* p_tty)  {
     set_cursor(p_tty->p_console->cursor);
 }
 
-PRIVATE set_video_start_addr(t_32 addr) {
-    disable_int();
-    out_byte(CRTC_ADDR_REG, CRTC_DATA_IDX_START_ADDR_H);
-    out_byte(CRTC_DATA_REG, ((addr) >> 8) & 0xFF);
-    out_byte(CRTC_ADDR_REG, CRTC_DATA_IDX_START_ADDR_L);
-    out_byte(CRTC_DATA_REG, (addr) & 0xFF);
-    enable_int();
-}
 
 PUBLIC void select_console(int nr_console) {
     if (nr_console < 0 || nr_console >= NR_CONSOLES) {
@@ -55,7 +57,7 @@ PUBLIC void select_console(int nr_console) {
     }
 
     nr_current_console = nr_console;
-    flush();
+    flush(console_table + nr_console);
 }
 
 PUBLIC int is_current_console(CONSOLE* p_console) {
@@ -90,8 +92,8 @@ PUBLIC void out_char(CONSOLE* p_console, char ch) {
         scroll_screen(p_console, SCROLL_SCREEN_DOWN);
     }
 
-    set_cursor(p_console->cursor);
-    set_video_start_addr(p_console->current_start_addr);
+
+    flush(p_console);
 }
 
 PUBLIC void scroll_screen(CONSOLE* p_console, int direction) {

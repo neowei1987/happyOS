@@ -71,7 +71,6 @@ global sys_call
 [section .text]
 
 _start: 
-	xchg bx, bx 
 	; 把esp从loader挪到KERNEL
     mov esp, StackTop
 
@@ -313,14 +312,15 @@ exception:
 ; 我们压入的分别是错误码，vector_code
 
 sys_call:
+	;xchg bx, bx
 	call save 
 	push dword [p_proc_ready]
 	sti 
-	push edx
+	;push edx ; edx会被覆盖掉，需要对汇编调用约定很清楚！
 	push ecx
 	push ebx 
 	call [sys_call_table + eax * 4]
-	add esp, 4 * 4
+	add esp, 3 * 4
 	mov [esi + EAXREG - P_STACKBASE], eax 
 	cli 
 	ret 
